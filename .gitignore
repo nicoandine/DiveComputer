@@ -3,6 +3,7 @@ DiveComputer
 Makefile
 .qmake.stash
 .DS_Store
+.clangd
 
 # Prerequisites
 *.d

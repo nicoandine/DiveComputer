@@ -47,6 +47,7 @@ public:
     int  m_diveNumber;
     bool m_boosted;
     SetPoints m_setPoints;
+    double m_mission;
 
     std::vector<CompartmentPP> m_initialPressure;
     std::vector<DiveStep> m_diveProfile;
@@ -67,7 +68,9 @@ public:
     void   optimiseDecoGas();
     double getTTS();
     double getTTSDelta(double incrementTime);
-    double getAP();
+    double getAP(); // To be implemented
+    double getTP(); // To be implemented
+    double getTurnTTS(); // To be implemented
 
     // Print-to-terminal functions
     void printPlan(std::vector<DiveStep> profile);

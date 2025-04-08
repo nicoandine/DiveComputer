@@ -101,7 +101,7 @@ void DivePlanWindow::refreshDivePlanTable() {
         divePlanTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
         
         // Add filtered dive steps to table
-        for (int i = 0; i < filteredSteps.size(); ++i) {
+        for (int i = 0; i < (int) filteredSteps.size(); ++i) {
             const DiveStep& step = filteredSteps[i];
             
             // Phase
@@ -312,7 +312,7 @@ void DivePlanWindow::divePlanCellChanged(int row, int column) {
         }
         
         // Make sure the row is valid for our filtered list
-        if (row >= 0 && row < filteredSteps.size()) {
+        if (row >= 0 && row < (int) filteredSteps.size()) {
             // Get the step using the original index
             int originalIndex = originalIndices[row];
             const DiveStep& step = m_divePlan->m_diveProfile[originalIndex];

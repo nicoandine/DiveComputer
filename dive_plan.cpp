@@ -206,6 +206,7 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
 
     // find the first STOP step
     int firstStopIndex = 0;
+
     for (int i = 1; i < nbOfSteps(); i++){
         if (tempDivePlan.m_diveProfile[i].m_phase == Phase::STOP){
             tempDivePlan.m_diveProfile[i].m_time = 0.0;
@@ -288,6 +289,16 @@ double DivePlan::getTTSDelta(double incrementTime){
     // tempDivePlan.updateGasConsumption();
 
     return tempDivePlan.getTTS() - getTTS();
+}
+
+double DivePlan::getTP(){
+    // TODO: Implement
+    return 100;
+}
+
+double DivePlan::getTurnTTS(){
+    // TODO: Implement
+    return 100;
 }
 
 double DivePlan::getAP() {
@@ -811,10 +822,29 @@ void DivePlan::printO2Exposure(){
 void DivePlan::printSummary(){
     std::pair<double, double> result = getMaxTimeAndTTS();
 
+    std::cout << "Dive Number: " << m_diveNumber << std::endl;
+    
+    std::cout << "GF " << g_parameters.m_gf[0] << " / " << g_parameters.m_gf[1] << std::endl;
     std::cout << "TTS Target: " << getTTS() << std::endl;
     std::cout << "TTS Max: " << result.second << " Max Time: " << result.first << std::endl;
     std::cout << "deltaTTS +5 min: " << getTTSDelta(5) << std::endl;
-}
+    
+    // only if the dive is in OC or CC mode + m_bailout is true
+    if ((m_mode == diveMode::OC || m_mode == diveMode::CC) && m_bailout){
+        std::cout << "AP: " << getAP() << std::endl;
+    }
 
+    // only if m_mission is not 0
+    if (m_mission != 0){
+        std::cout << "Mission: " << m_mission << std::endl;
+        std::cout << "T-TTS: " << getTurnTTS() << std::endl;
+
+        // only if mode is OC
+        if (m_mode == diveMode::OC){
+            std::cout << "TP: " << getTP() << std::endl;
+        }
+    }
+
+}
 
 } // namespace DiveComputer

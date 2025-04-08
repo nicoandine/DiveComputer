@@ -160,8 +160,6 @@ bool DiveStep::getIfBreachingDecoLimits() {
     return breached;
 }
 
-// update functions
-
 void DiveStep::updatePAmb(){
     m_pAmbStartDepth = getPressureFromDepth(m_startDepth);
     m_pAmbEndDepth = getPressureFromDepth(m_endDepth);

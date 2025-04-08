@@ -4,8 +4,7 @@
 namespace DiveComputer {
 
 DivePlanDialog::DivePlanDialog(QWidget *parent)
-    : QDialog(parent)
-{
+    : QDialog(parent){
     setWindowTitle("Create Dive Plan");
     setupUI();
     
@@ -17,8 +16,7 @@ DivePlanDialog::DivePlanDialog(QWidget *parent)
     connect(bottomTimeEdit, &QLineEdit::textChanged, this, &DivePlanDialog::validateInputs);
 }
 
-void DivePlanDialog::setupUI()
-{
+void DivePlanDialog::setupUI() {
     // Main layout
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     
@@ -88,18 +86,15 @@ void DivePlanDialog::validateInputs() {
     createButton->setEnabled(depthValid && timeValid);
 }
 
-double DivePlanDialog::getDepth() const
-{
+double DivePlanDialog::getDepth() const {
     return depthEdit->text().toDouble();
 }
 
-double DivePlanDialog::getBottomTime() const
-{
+double DivePlanDialog::getBottomTime() const {
     return bottomTimeEdit->text().toDouble();
 }
 
-diveMode DivePlanDialog::getDiveMode() const
-{
+diveMode DivePlanDialog::getDiveMode() const {
     return static_cast<diveMode>(diveModeCombo->currentData().toInt());
 }
 

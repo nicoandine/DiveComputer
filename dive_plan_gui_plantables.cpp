@@ -268,8 +268,7 @@ void DivePlanWindow::resizeDivePlanTable() {
     m_tableDirty = false;
 }
 
-void DivePlanWindow::divePlanCellChanged(int row, int column)
-{
+void DivePlanWindow::divePlanCellChanged(int row, int column) {
     // Only handle time column for STOP phases
     if (column == COL_TIME) {
         const DiveStep& step = m_divePlan->m_diveProfile[row];

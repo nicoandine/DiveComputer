@@ -327,13 +327,11 @@ void DivePlanWindow::refreshDivePlan() {
     isRefreshing = false;
 }
 
-QString DivePlanWindow::getPhaseString(Phase phase)
-{
+QString DivePlanWindow::getPhaseString(Phase phase) {
     return QString::fromStdString(getPhaseIcon(phase));
 }
 
-QString DivePlanWindow::getStepModeString(stepMode mode)
-{
+QString DivePlanWindow::getStepModeString(stepMode mode) {
     return QString::fromStdString(getStepModeIcon(mode));
 }
 
@@ -370,8 +368,7 @@ void DivePlanWindow::highlightWarningCells() {
     }
 }
 
-void DivePlanWindow::bailoutToggled(bool checked)
-{
+void DivePlanWindow::bailoutToggled(bool checked) {
     // If CC mode and bailout is checked, set mode to BAILOUT
     // Otherwise, restore to original mode (CC or OC)
     if (m_divePlan->m_mode == diveMode::CC) {
@@ -954,14 +951,12 @@ void DivePlanWindow::resizeEvent(QResizeEvent* event) {
     }
 }
 
-// Placeholder action implementations
-void DivePlanWindow::defineMission()
-{
+void DivePlanWindow::defineMission() {
     // Placeholder for Define mission functionality
     qDebug() << "Define mission action triggered";
 }
 
-void DivePlanWindow::setMaxTime(){
+void DivePlanWindow::setMaxTime() {
     std::pair<double, double> result = m_divePlan->getMaxTimeAndTTS();
     std::cout << "Max Time: " << result.first << " Max TTS: " << result.second << std::endl;
 
@@ -979,16 +974,14 @@ void DivePlanWindow::setMaxTime(){
     refreshStopStepsTable();
 }
 
-void DivePlanWindow::optimiseDecoGas()
-{
-    // Placeholder for Optimise a deco gas functionality
+void DivePlanWindow::optimiseDecoGas() {
+    // TO BE UPDATED. Currently used to displaythe dive summary
     qDebug() << "Optimise a deco gas action triggered";
     m_divePlan->printSummary();
     m_divePlan->optimiseDecoGas();
 }
 
-void DivePlanWindow::onWindowTitleChanged()
-{
+void DivePlanWindow::onWindowTitleChanged() {
     static bool firstActivation = true;
     if (firstActivation) {
         firstActivation = false;
@@ -996,8 +989,7 @@ void DivePlanWindow::onWindowTitleChanged()
     }
 }
 
-void DivePlanWindow::initializeSplitters()
-{
+void DivePlanWindow::initializeSplitters() {
     // Initialize all splitters
     for (const auto& config : m_splitters) {
         if (config.splitter) {
@@ -1043,7 +1035,6 @@ void DivePlanWindow::initializeSplitters()
     resizeGasesTable();
 }
 
-// Add this implementation to dive_plan_gui.cpp:
 void DivePlanWindow::onSplitterMoved(int /*pos*/, int index) {
     QSplitter* splitter = qobject_cast<QSplitter*>(sender());
     if (splitter) {

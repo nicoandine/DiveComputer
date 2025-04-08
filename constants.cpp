@@ -11,7 +11,6 @@ Constants::Constants() {
 }
 
 void Constants::calculateDerivedConstants() {
-    
     // Calculate derived constants based on primary constants
     m_barPerMeter = m_waterDensity * m_gravitation / 100000.0;
     m_meterPerBar = 1.0 / m_barPerMeter;

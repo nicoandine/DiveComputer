@@ -3,7 +3,7 @@
 
 namespace DiveComputer {
 
-void DivePlanWindow::stopStepCellChanged(int row, int column){
+void DivePlanWindow::stopStepCellChanged(int row, int column) {
     // Only handle valid columns (depth and time)
     if (column == STOP_COL_DEPTH || column == STOP_COL_TIME) {
         // Get the current value from the table

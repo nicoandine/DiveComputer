@@ -9,18 +9,16 @@ CompartmentParameters::CompartmentParameters(double halfTimeN2, double aN2, doub
     , m_bN2(bN2)
     , m_halfTimeHe(halfTimeHe)
     , m_aHe(aHe)
-    , m_bHe(bHe)
-{
+    , m_bHe(bHe) {        
 }
 
 CompartmentPP::CompartmentPP(double pN2, double pHe, double pInert)
     : m_pN2(pN2)
     , m_pHe(pHe)
-    , m_pInert(pInert)
-{
+    , m_pInert(pInert){
 }
 
-CompartmentPP& CompartmentPP::operator=(const CompartmentPP& other) {
+CompartmentPP& CompartmentPP::operator=(const CompartmentPP& other){
     if (this != &other) {
         m_pN2 = other.m_pN2;
         m_pHe = other.m_pHe;

@@ -4,8 +4,7 @@
 
 namespace DiveComputer {
 
-DivePlan::DivePlan(double depth, double time, diveMode mode, int diveNumber, std::vector<CompartmentPP> initialPressure)
-{
+DivePlan::DivePlan(double depth, double time, diveMode mode, int diveNumber, std::vector<CompartmentPP> initialPressure){
     m_diveNumber = diveNumber;
     m_mode = mode;
 

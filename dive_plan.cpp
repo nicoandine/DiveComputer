@@ -294,7 +294,7 @@ double DivePlan::getTTSDelta(double incrementTime){
 double DivePlan::getAP() {
     // Finish AP, update the printSummary method, and move the print summary top the widget. 
     // Reconnect DivePlanWindow::optimiseDecoGas to only the optimize deco (currently print summaryfor debugging)
-    // This is a basic change to check GitHub Actions and test
+    // This is a basic change to check GitHub Actions and test and test
     return 100;
 }
 

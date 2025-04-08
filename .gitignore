@@ -52,4 +52,4 @@ Makefile*
 .vscode/
 .vs/
 *.swp
-*.swo
+*.swo.DS_Store

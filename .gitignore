@@ -1,3 +1,9 @@
+# Build artifacts
+DiveComputer
+Makefile
+.qmake.stash
+.DS_Store
+
 # Prerequisites
 *.d
 
@@ -33,6 +39,14 @@ Debug/
 Release/
 x64/
 x86/
+
+# Qt specific
+*.pro.user
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+Makefile*
+*build-*
 
 # IDE files
 .vscode/

@@ -75,16 +75,34 @@ void DivePlanWindow::refreshDivePlanTable() {
 
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(divePlanTable, this, &DivePlanWindow::divePlanCellChanged, [this]() {
-        // Set row count
-        divePlanTable->setRowCount(m_divePlan->nbOfSteps());
+        // Filter steps to hide certain phases where time = 0
+        std::vector<DiveStep> filteredSteps;
+        for (int i = 0; i < m_divePlan->nbOfSteps(); ++i) {
+            const DiveStep& step = m_divePlan->m_diveProfile[i];
+            
+            // Keep all steps where time is not 0
+            if (step.m_time != 0) {
+                filteredSteps.push_back(step);
+                continue;
+            }
+            
+            // For time = 0, only keep GAS_SWITCH phase
+            if (step.m_time == 0 && step.m_phase == Phase::GAS_SWITCH) {
+                filteredSteps.push_back(step);
+            }
+            // Skip other phases when time = 0 (DESCENDING, STOP, MISSION, DECO, ASCENDING)
+        }
+        
+        // Set row count based on filtered steps
+        divePlanTable->setRowCount(filteredSteps.size());
         
         // Temporarily switch to fixed width mode during updates
         QHeaderView::ResizeMode oldMode = divePlanTable->horizontalHeader()->sectionResizeMode(0);
         divePlanTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
         
-        // Add dive steps to table
-        for (int i = 0; i < m_divePlan->nbOfSteps(); ++i) {
-            const DiveStep& step = m_divePlan->m_diveProfile[i];
+        // Add filtered dive steps to table
+        for (int i = 0; i < filteredSteps.size(); ++i) {
+            const DiveStep& step = filteredSteps[i];
             
             // Phase
             divePlanTable->setItem(i, COL_PHASE, 
@@ -94,6 +112,7 @@ void DivePlanWindow::refreshDivePlanTable() {
             divePlanTable->setItem(i, COL_MODE, 
                 TableHelper::createReadOnlyCell(getStepModeString(step.m_mode)));
             
+            // Remaining fields are unchanged
             // Depth range
             QString depthRange = QString::number(step.m_startDepth, 'f', 0) + " → " +
                                QString::number(step.m_endDepth, 'f', 0);
@@ -271,35 +290,61 @@ void DivePlanWindow::resizeDivePlanTable() {
 void DivePlanWindow::divePlanCellChanged(int row, int column) {
     // Only handle time column for STOP phases
     if (column == COL_TIME) {
-        const DiveStep& step = m_divePlan->m_diveProfile[row];
+        // First create a filtered list to map displayed row to original step
+        std::vector<DiveStep> filteredSteps;
+        std::vector<int> originalIndices; // Store original indices for the filtered steps
         
-        // Check if this is a STOP phase
-        if (step.m_phase == Phase::STOP) {
-            // Get the updated value
-            QTableWidgetItem* item = divePlanTable->item(row, column);
-            if (!item) return;
+        for (int i = 0; i < m_divePlan->nbOfSteps(); ++i) {
+            const DiveStep& step = m_divePlan->m_diveProfile[i];
             
-            bool ok;
-            double newTime = item->text().toDouble(&ok);
+            // Keep all steps where time is not 0
+            if (step.m_time != 0) {
+                filteredSteps.push_back(step);
+                originalIndices.push_back(i);
+                continue;
+            }
             
-            if (ok) {
-                // Find the corresponding stop step
-                for (int i = 0; i < m_divePlan->m_stopSteps.nbOfStopSteps(); ++i) {
-                    // Match by depth to find the corresponding stop step
-                    if (std::abs(m_divePlan->m_stopSteps.m_stopSteps[i].m_depth - step.m_startDepth) < 0.1) {
-                        // Update the stop step time
-                        m_divePlan->m_stopSteps.editStopStep(i, 
-                                                         m_divePlan->m_stopSteps.m_stopSteps[i].m_depth, 
-                                                         newTime);
-                        
-                        // Rebuild everything
-                        rebuildDivePlan();
-                        refreshDivePlan();
-                        
-                        // Allow UI to process events
-                        QApplication::processEvents();
-                        
-                        break;
+            // For time = 0, only keep GAS_SWITCH phase
+            if (step.m_time == 0 && step.m_phase == Phase::GAS_SWITCH) {
+                filteredSteps.push_back(step);
+                originalIndices.push_back(i);
+            }
+        }
+        
+        // Make sure the row is valid for our filtered list
+        if (row >= 0 && row < filteredSteps.size()) {
+            // Get the step using the original index
+            int originalIndex = originalIndices[row];
+            const DiveStep& step = m_divePlan->m_diveProfile[originalIndex];
+            
+            // Check if this is a STOP phase
+            if (step.m_phase == Phase::STOP) {
+                // Get the updated value
+                QTableWidgetItem* item = divePlanTable->item(row, column);
+                if (!item) return;
+                
+                bool ok;
+                double newTime = item->text().toDouble(&ok);
+                
+                if (ok) {
+                    // Find the corresponding stop step
+                    for (int i = 0; i < m_divePlan->m_stopSteps.nbOfStopSteps(); ++i) {
+                        // Match by depth to find the corresponding stop step
+                        if (std::abs(m_divePlan->m_stopSteps.m_stopSteps[i].m_depth - step.m_startDepth) < 0.1) {
+                            // Update the stop step time
+                            m_divePlan->m_stopSteps.editStopStep(i, 
+                                                             m_divePlan->m_stopSteps.m_stopSteps[i].m_depth, 
+                                                             newTime);
+                            
+                            // Rebuild everything
+                            rebuildDivePlan();
+                            refreshDivePlan();
+                            
+                            // Allow UI to process events
+                            QApplication::processEvents();
+                            
+                            break;
+                        }
                     }
                 }
             }
@@ -307,6 +352,56 @@ void DivePlanWindow::divePlanCellChanged(int row, int column) {
     }
 }
 
+void DivePlanWindow::highlightWarningCells() {
+    // First create a filtered list matching what's displayed in the table
+    std::vector<DiveStep> filteredSteps;
+    for (int i = 0; i < m_divePlan->nbOfSteps(); ++i) {
+        const DiveStep& step = m_divePlan->m_diveProfile[i];
+        
+        // Keep all steps where time is not 0
+        if (step.m_time != 0) {
+            filteredSteps.push_back(step);
+            continue;
+        }
+        
+        // For time = 0, only keep GAS_SWITCH phase
+        if (step.m_time == 0 && step.m_phase == Phase::GAS_SWITCH) {
+            filteredSteps.push_back(step);
+        }
+        // Skip other phases when time = 0 (DESCENDING, STOP, MISSION, DECO, ASCENDING)
+    }
+    
+    // Now highlight cells based on the filtered steps
+    for (int row = 0; row < divePlanTable->rowCount(); ++row) {
+        // Use the filtered steps collection instead of directly accessing m_diveProfile
+        const DiveStep& step = filteredSteps[row];
+        
+        // 1. Gas Density
+        QTableWidgetItem* gasItem = divePlanTable->item(row, COL_GAS_DENSITY);
+        if (gasItem) {
+            TableHelper::highlightCell(gasItem, step.m_gasDensity > g_parameters.m_warningGasDensity);
+        }
+        
+        // 2. pO2 Max (too high or too low)
+        QTableWidgetItem* pO2Item = divePlanTable->item(row, COL_PO2_MAX);
+        if (pO2Item) {
+            TableHelper::highlightCell(pO2Item, 
+                (step.m_pO2Max > g_parameters.m_PpO2Deco || step.m_pO2Max < g_parameters.m_warningPpO2Low));
+        }
+        
+        // 3. CNS Single Dive
+        QTableWidgetItem* cnsItem = divePlanTable->item(row, COL_CNS_SINGLE);
+        if (cnsItem) {
+            TableHelper::highlightCell(cnsItem, step.m_cnsTotalSingleDive > g_parameters.m_warningCnsMax);
+        }
+        
+        // 4. OTU Total
+        QTableWidgetItem* otuItem = divePlanTable->item(row, COL_OTU);
+        if (otuItem) {
+            TableHelper::highlightCell(otuItem, step.m_otuTotal > g_parameters.m_warningOtuMax);
+        }
+    }
+}
 
 
 } // namespace DiveComputer

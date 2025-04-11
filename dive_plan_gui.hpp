@@ -215,7 +215,6 @@ private:
 private slots:
     // Registered slots
     void diveModeChanged(int index);
-    void bailoutToggled(bool checked);
     void divePlanCellChanged(int row, int column);
     void setpointCellChanged(int row, int column);
     void addSetpoint();
@@ -226,13 +225,13 @@ private slots:
     void onWindowTitleChanged();
     void initializeSplitters();
     void onSplitterMoved(int pos, int index);
-    void ccModeActivated();
-    
+
+    // UI methods
     void resizeDivePlanTable();
     void resizeGasesTable();
     
-    // PLACEHOLDER methods
-    void defineMission();
+    // Action methods
+    void ccModeActivated();
     void setMaxTime();
     void optimiseDecoGas();
 

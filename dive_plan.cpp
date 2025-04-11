@@ -45,6 +45,10 @@ void DivePlan::loadAvailableGases() {
 }
 
 void DivePlan::build(){
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     clear();
 
     // Set mode
@@ -94,6 +98,9 @@ void DivePlan::build(){
 
     // Initialise the ppActual for Step 0
     m_diveProfile[0].m_ppActual = m_initialPressure;
+
+    // Monitor performance
+    printf("DivePlan::build() took %lld ms\n", timer.elapsed());
 }
 
 void DivePlan::calculate() {
@@ -102,6 +109,10 @@ void DivePlan::calculate() {
         if (m_diveProfile.empty()) {
             throw std::runtime_error("Cannot calculate with empty dive profile");
         }
+
+        // Log performance
+        QElapsedTimer timer;
+        timer.start();
 
         m_firstDecoDepth = 0;
 
@@ -152,6 +163,9 @@ void DivePlan::calculate() {
         updateVariables(100); // GF 100 for ceiling
         updateTimeProfile();
 
+        // Monitor performance
+        printf("DivePlan::calculate() took %lld ms\n", timer.elapsed());
+
     }, "DivePlan::calculate", "Calculation Error");
 }
 
@@ -194,10 +208,6 @@ void DivePlan::updateGasConsumption() {
             gas.m_endPressure = 0.0;
         }
     }
-}
-
-void DivePlan::defineMission() {
-    // TODO: Implement
 }
 
 std::pair<double, double> DivePlan::getMaxTimeAndTTS() {       
@@ -252,7 +262,8 @@ bool DivePlan::enoughGasAvailable(){
 }
 
 void DivePlan::optimiseDecoGas() {
-    // TODO: Implement
+   // placeholder used for testing for now
+   printPlan(m_timeProfile);
 }
 
 double DivePlan::getTTS(){
@@ -833,9 +844,12 @@ void DivePlan::updateVariables(double GF){
 }
 
 void DivePlan::updateTimeProfile(){
-
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+    
     double time_increment = g_parameters.m_timeIncrementDeco;
-    int total_time_steps = (int) (m_diveProfile[nbOfSteps() - 1].m_runTime - m_diveProfile[0].m_runTime) / time_increment;
+    int total_time_steps = (int) (m_diveProfile[nbOfSteps() - 1].m_runTime / time_increment);
 
     m_timeProfile.clear();
     m_timeProfile.resize(total_time_steps);
@@ -843,7 +857,7 @@ void DivePlan::updateTimeProfile(){
     int diveplan_index = 0;
     int timeplan_index = 0;
         
-    double run_time = m_diveProfile[0].m_runTime + time_increment;
+    double run_time = time_increment;
     double CNS_total_single_dive = 0;
     double CNS_total_multiple_dives = 0;
     double OTU_total = 0;
@@ -885,7 +899,12 @@ void DivePlan::updateTimeProfile(){
 
     for (int i = 0; i < total_time_steps; i++){
         m_timeProfile[i].updateGFSurface(&m_diveProfile[nbOfSteps() - 1]);
+        m_timeProfile[i].updateCeiling(100);
     }
+
+    // Monitor performance
+    printf("DivePlan::updateTimeProfile() took %lld ms\n", timer.elapsed());
+
 }
 
 // Print-to-terminal functions
@@ -894,12 +913,12 @@ void DivePlan::printPlan(std::vector<DiveStep> profile){
     printf("\nDIVE PROFILE\n\n");
  
     // Print the header
-    printf("----------------------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf("|Step| Phase|    Depth   |  time /   run | Pamb / ppO2 |   GF  | GFSurf | O2 /  He /  N2  | SAC/ Amb /  Tot |  d  |    END (m)  |   CNS (%%)  | OTU |\n");
-    printf("|  # |      |     (m)    |      (min)    |  max (bar)  |       |        |      (%%)        | (L/min)  /  (L) |(g/L)| non O2 / O2 | Dive | Day | min |\n");
-    printf("----------------------------------------------------------------------------------------------------------------------------------------------------\n");
+    printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+    printf("|Step| Phase|    Depth   | Ceil |  time /   run | Pamb / ppO2 |   GF  | GFSurf | O2 /  He /  N2  | SAC/ Amb /  Tot |  d  |    END (m)  |   CNS (%%)  | OTU |\n");
+    printf("|  # |      |     (m)    |  (m) |      (min)    |  max (bar)  |       |        |      (%%)        | (L/min)  /  (L) |(g/L)| non O2 / O2 | Dive | Day | min |\n");
+    printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 
-    for (int i = 0; i < nbOfSteps(); i++){
+    for (int i = 0; i < (int) profile.size(); i++){
         printf("|%3i | ", i);
         if (profile[i].m_phase == Phase::DESCENDING)          printf("DESC | ");
         if (profile[i].m_phase == Phase::GAS_SWITCH)          printf("GAS  | ");
@@ -908,8 +927,9 @@ void DivePlan::printPlan(std::vector<DiveStep> profile){
         if (profile[i].m_phase == Phase::ASCENDING)           printf("ASC  | ");
         if (profile[i].m_phase == Phase::GROUPED_ASCENDING)   printf("ASC* | ");
         
-        printf("%3.0f -> %3.0f | %5.1f / %5.1f | %4.1f / %3.2f | %4.0f  |  %4.0f  | %3.0f / %3.0f / %3.0f | %2.0f / %3.0f / %4.0f | %3.1f |   %3.0f / %3.0f |  %3.0f | %3.0f | %3.0f |\n", 
-            profile[i].m_startDepth, profile[i].m_endDepth, 
+        printf("%3.0f -> %3.0f |  %3.0f | %5.1f / %5.1f | %4.1f / %3.2f | %4.0f  |  %4.0f  | %3.0f / %3.0f / %3.0f | %2.0f / %3.0f / %4.0f | %3.1f |   %3.0f / %3.0f |  %3.0f | %3.0f | %3.0f |\n", 
+            profile[i].m_startDepth, profile[i].m_endDepth,
+            profile[i].m_ceiling,
             profile[i].m_time, profile[i].m_runTime, 
             profile[i].m_pAmbMax, profile[i].m_pO2Max,
             profile[i].m_gf, profile[i].m_gfSurface,
@@ -919,7 +939,7 @@ void DivePlan::printPlan(std::vector<DiveStep> profile){
             profile[i].m_cnsTotalSingleDive, profile[i].m_cnsTotalMultipleDives, profile[i].m_otuTotal);
     }
 
-    printf("----------------------------------------------------------------------------------------------------------------------------------------------------\n\n");
+    printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 }
 
 void DivePlan::printCompartmentDetails(int compartment){

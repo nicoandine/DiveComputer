@@ -49,8 +49,7 @@ double DiveStep::getCeiling(double GF){
         double b_he = g_buhlmannModel.m_compartments[j].m_bHe;
         p_amb_min_he = (m_ppActual[j].m_pHe - a_he * GF / 100) /  (1 + (1 / b_he - 1) * GF / 100);
         ceiling_he = std::max(ceiling_he, getDepthFromPressure(p_amb_min_he));
-        
-            
+         
         // For total inert gas: adjusted by the proportion of N2 over (N2 + He)
         // If only O2 is breathed, then no condition on total inert gas. Max out P_Inert_Max
             

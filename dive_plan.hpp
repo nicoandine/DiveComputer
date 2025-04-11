@@ -63,7 +63,6 @@ public:
     int  nbOfSteps();
 
     // Action methods
-    void   defineMission();
     std::pair<double, double> getMaxTimeAndTTS();
     void   optimiseDecoGas();
     double getTTS();

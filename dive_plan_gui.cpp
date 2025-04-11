@@ -337,24 +337,54 @@ QString DivePlanWindow::getStepModeString(stepMode mode) {
     return QString::fromStdString(getStepModeIcon(mode));
 }
 
-void DivePlanWindow::bailoutToggled(bool checked) {
-    // If CC mode and bailout is checked, set mode to BAILOUT
-    // Otherwise, restore to original mode (CC or OC)
-    if (m_divePlan->m_mode == diveMode::CC) {
-        m_divePlan->m_bailout = checked;
-        
-        // Update menu state
-        updateMenuState();
-    }
-
-    // Rebuild the dive plan
+// Action methods
+void DivePlanWindow::ccModeActivated() {
+    QElapsedTimer timer;
+    timer.start();
+    
+    // Set CC mode
+    m_divePlan->m_mode = diveMode::CC;
+    
+    // Update the mode display
+    updateMenuState();
+    
+    // Show setpoints table if in CC mode
+    updateSetpointVisibility();
+    
+    // Rebuild and refresh the dive plan
     rebuildDivePlan();
     refreshDivePlan();
-
+    
+    qDebug() << "CC Mode switch took" << timer.elapsed() << "ms";
+    
     // Allow UI to process events after the edit
     QApplication::processEvents();
 }
 
+void DivePlanWindow::setMaxTime() {
+    std::pair<double, double> result = m_divePlan->getMaxTimeAndTTS();
+    std::cout << "Max Time: " << result.first << " Max TTS: " << result.second << std::endl;
+
+    // find the first stop step
+    int firstStopIndex = 0;
+    for (int i = 1; i < m_divePlan->nbOfSteps(); i++) {
+        if (m_divePlan->m_diveProfile[i].m_phase == Phase::STOP) {
+            firstStopIndex = i;
+            break;
+        }
+    }
+    m_divePlan->m_diveProfile[firstStopIndex].m_time = result.first;
+    m_divePlan->calculate();
+    refreshDivePlan(); // includes refreshing the gas table
+    refreshStopStepsTable();
+}
+
+void DivePlanWindow::optimiseDecoGas() {
+    m_divePlan->optimiseDecoGas();
+    refreshDivePlan(); // includes refreshing the gas table
+}
+
+// Handles menu activation
 void DivePlanWindow::activate() {
     // Just tell main window to handle menu and make this window active
     if (m_mainWindow && !m_isUpdating) {
@@ -827,7 +857,7 @@ void DivePlanWindow::updateSplitterVisibility(QSplitter* splitter) {
             handle->setVisible(true);
         }
     }
-}// Update the visibility of setpoints based on the current dive mode
+}
 
 void DivePlanWindow::updateSetpointVisibility() {
     if (!m_divePlan) return;
@@ -920,36 +950,6 @@ void DivePlanWindow::resizeEvent(QResizeEvent* event) {
     }
 }
 
-void DivePlanWindow::defineMission() {
-    // Placeholder for Define mission functionality
-    qDebug() << "Define mission action triggered";
-}
-
-void DivePlanWindow::setMaxTime() {
-    std::pair<double, double> result = m_divePlan->getMaxTimeAndTTS();
-    std::cout << "Max Time: " << result.first << " Max TTS: " << result.second << std::endl;
-
-    // find the first stop step
-    int firstStopIndex = 0;
-    for (int i = 1; i < m_divePlan->nbOfSteps(); i++) {
-        if (m_divePlan->m_diveProfile[i].m_phase == Phase::STOP) {
-            firstStopIndex = i;
-            break;
-        }
-    }
-    m_divePlan->m_diveProfile[firstStopIndex].m_time = result.first;
-    m_divePlan->calculate();
-    refreshDivePlan();
-    refreshStopStepsTable();
-}
-
-void DivePlanWindow::optimiseDecoGas() {
-    // TO BE UPDATED. Currently used to displaythe dive summary
-    qDebug() << "Optimise a deco gas action triggered";
-    m_divePlan->printSummary();
-    m_divePlan->optimiseDecoGas();
-}
-
 void DivePlanWindow::onWindowTitleChanged() {
     static bool firstActivation = true;
     if (firstActivation) {
@@ -1009,29 +1009,6 @@ void DivePlanWindow::onSplitterMoved(int /*pos*/, int index) {
     if (splitter) {
         handleSplitterMovement(splitter, index);
     }
-}
-
-void DivePlanWindow::ccModeActivated() {
-    QElapsedTimer timer;
-    timer.start();
-    
-    // Set CC mode
-    m_divePlan->m_mode = diveMode::CC;
-    
-    // Update the mode display
-    updateMenuState();
-    
-    // Show setpoints table if in CC mode
-    updateSetpointVisibility();
-    
-    // Rebuild and refresh the dive plan
-    rebuildDivePlan();
-    refreshDivePlan();
-    
-    qDebug() << "CC Mode switch took" << timer.elapsed() << "ms";
-    
-    // Allow UI to process events after the edit
-    QApplication::processEvents();
 }
 
 void DivePlanWindow::showProgressDialog(const QString& message) {

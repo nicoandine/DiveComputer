@@ -302,10 +302,66 @@ double DivePlan::getTurnTTS(){
 }
 
 double DivePlan::getAP() {
-    // Finish AP, update the printSummary method, and move the print summary top the widget. 
-    // Reconnect DivePlanWindow::optimiseDecoGas to only the optimize deco (currently print summaryfor debugging)
-    // This is a basic change to check GitHub Actions and test and test and test
-    return 100;
+    // Find the first ascent step after the bottom phase
+    int firstAscentIndex = -1;
+    for (int i = 0; i < nbOfSteps(); i++) {
+        if (m_diveProfile[i].m_phase == Phase::ASCENDING) {
+            firstAscentIndex = i;
+            break;
+        }
+    }
+    
+    // If no ascent step found, return 0
+    if (firstAscentIndex == -1) {
+        return 0.0;
+    }
+    
+    // Get the initial gas mix (O2/He percentages)
+    double initialO2 = m_diveProfile[firstAscentIndex].m_o2Percent;
+    double initialHe = m_diveProfile[firstAscentIndex].m_hePercent;
+    
+    // Sum gas consumption until a gas switch occurs
+    double totalConsumption = 0.0;
+    int i = firstAscentIndex;
+    
+    while (i < nbOfSteps()) {
+        // Check if we reached a gas switch
+        if (i > firstAscentIndex && 
+            (std::abs(m_diveProfile[i].m_o2Percent - initialO2) > 0.1 || 
+             std::abs(m_diveProfile[i].m_hePercent - initialHe) > 0.1)) {
+            break;
+        }
+        
+        // Add consumption for this step
+        totalConsumption += m_diveProfile[i].m_stepConsumption;
+        i++;
+    }
+    
+    // Find the matching gas in available gases
+    const GasAvailable* matchingGas = nullptr;
+    for (const auto& gas : m_gasAvailable) {
+        if (std::abs(gas.m_gas.m_o2Percent - initialO2) < 0.1 && 
+            std::abs(gas.m_gas.m_hePercent - initialHe) < 0.1) {
+            matchingGas = &gas;
+            break;
+        }
+    }
+    
+    // If no matching gas found, return 0
+    if (!matchingGas) {
+        return 0.0;
+    }
+    
+    // Calculate pressure consumption based on tanks and capacity
+    double pressureConsumed = 0.0;
+    if (matchingGas->m_nbTanks > 0 && matchingGas->m_tankCapacity > 0) {
+        pressureConsumed = totalConsumption / (matchingGas->m_nbTanks * matchingGas->m_tankCapacity);
+    }
+    
+    // Add reserve pressure to get the minimum starting pressure (AP)
+    double ap = matchingGas->m_reservePressure + pressureConsumed;
+    
+    return ap;
 }
 
 // HELPER METHODS

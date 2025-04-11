@@ -291,7 +291,8 @@ void DivePlanWindow::refreshDiveSummary() {
                 } else if (pair.first->text() == "TTS Max:") {
                     pair.second->setText(QString::number(maxResult.second, 'f', 0) + " min");
                 } else if (pair.first->text() == "AP:") {
-                    pair.second->setText(QString::number(ap, 'f', 0) + " bar");
+                    pair.second->setText(QString::number(ap, 'f', 0) + " bar" + 
+                        (g_parameters.m_calculateAPandTPonOneTank ? " (on one tank)" : " (on all tanks)"));
                 }
             }
         }
@@ -330,7 +331,8 @@ void DivePlanWindow::refreshDiveSummary() {
             
             if (showTP) {
                 double tp = m_divePlan->getTP();
-                tpLabel->setText(QString::number(tp, 'f', 0) + " bar");
+                tpLabel->setText(QString::number(tp, 'f', 0) + " bar" + 
+                    (g_parameters.m_calculateAPandTPonOneTank ? " (on one tank)" : " (on all tanks)"));
             }
             break;
         }

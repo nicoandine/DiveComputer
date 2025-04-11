@@ -90,7 +90,7 @@ void DivePlanWindow::refreshDivePlanTable() {
             if (step.m_time == 0 && step.m_phase == Phase::GAS_SWITCH) {
                 filteredSteps.push_back(step);
             }
-            // Skip other phases when time = 0 (DESCENDING, STOP, MISSION, DECO, ASCENDING)
+            // Skip other phases when time = 0 (DESCENDING, STOP, DECO, ASCENDING)
         }
         
         // Set row count based on filtered steps
@@ -368,7 +368,7 @@ void DivePlanWindow::highlightWarningCells() {
         if (step.m_time == 0 && step.m_phase == Phase::GAS_SWITCH) {
             filteredSteps.push_back(step);
         }
-        // Skip other phases when time = 0 (DESCENDING, STOP, MISSION, DECO, ASCENDING)
+        // Skip other phases when time = 0 (DESCENDING, STOP, DECO, ASCENDING)
     }
     
     // Now highlight cells based on the filtered steps

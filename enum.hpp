@@ -17,7 +17,6 @@ enum class Phase {
     DESCENDING,
     GAS_SWITCH,
     STOP,
-    MISSION,
     DECO,
     ASCENDING,
     GROUPED_ASCENDING,

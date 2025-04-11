@@ -274,15 +274,26 @@ double DivePlan::getTTS(){
 double DivePlan::getTTSDelta(double incrementTime){
     DivePlan tempDivePlan = *this;
 
-    // find the first STOP step
-    int firstStopIndex = 0;
-    for (int i = 1; i < nbOfSteps(); i++){
-        if (tempDivePlan.m_diveProfile[i].m_phase == Phase::STOP){
-            tempDivePlan.m_diveProfile[i].m_time += incrementTime;
-            firstStopIndex = i;
-            break;
+    // Find the deepest STOP phase in the dive profile
+    int deepestStopIndex = -1;
+    double deepestDepth = 0.0;
+    
+    for (int i = 0; i < nbOfSteps(); i++) {
+        if (tempDivePlan.m_diveProfile[i].m_phase == Phase::STOP && 
+            tempDivePlan.m_diveProfile[i].m_endDepth > deepestDepth) {
+            deepestStopIndex = i;
+            deepestDepth = tempDivePlan.m_diveProfile[i].m_endDepth;
         }
     }
+
+    // If no STOP phase was found, return 0
+    if (deepestStopIndex == -1) {
+        return 0.0;
+    }
+
+    // Adjust the duration of the deepest step
+    tempDivePlan.m_diveProfile[deepestStopIndex].m_time = std::max(0.0, 
+        tempDivePlan.m_diveProfile[deepestStopIndex].m_time + incrementTime);
 
     // Recalculate the dive plan
     tempDivePlan.calculate();
@@ -291,14 +302,82 @@ double DivePlan::getTTSDelta(double incrementTime){
     return tempDivePlan.getTTS() - getTTS();
 }
 
-double DivePlan::getTP(){
-    // TODO: Implement
-    return 100;
+// Function to calculate the turn pressure
+double DivePlan::getTP() {
+    // If no mission time is set, return the ascent pressure
+    if (m_mission <= 0) {
+        return getAP();
+    }
+    
+    // Find the deepest STOP phase in the dive profile
+    int deepestStopIndex = -1;
+    double deepestDepth = 0.0;
+    
+    for (int i = 0; i < nbOfSteps(); i++) {
+        if (m_diveProfile[i].m_phase == Phase::STOP && 
+            m_diveProfile[i].m_endDepth > deepestDepth) {
+            deepestStopIndex = i;
+            deepestDepth = m_diveProfile[i].m_endDepth;
+        }
+    }
+    
+    // If no STOP phase was found, return 0
+    if (deepestStopIndex == -1) {
+        return 0;
+    }
+    
+    // Get the deepest stop step
+    const DiveStep& deepestStop = m_diveProfile[deepestStopIndex];
+    
+    // Find the gas being used at the deepest stop
+    const GasAvailable* matchingGas = nullptr;
+    for (const auto& gas : m_gasAvailable) {
+        if (std::abs(gas.m_gas.m_o2Percent - deepestStop.m_o2Percent) < 0.1 && 
+            std::abs(gas.m_gas.m_hePercent - deepestStop.m_hePercent) < 0.1) {
+            matchingGas = &gas;
+            break;
+        }
+    }
+    
+    // If no matching gas found, return the standard ascent pressure
+    if (!matchingGas) {
+        return 0;
+    }
+    
+    // Calculate ambient pressure at the deepest stop depth
+    double ambientPressure = getPressureFromDepth(deepestDepth);
+    
+    // Determine SAC rate based on mode
+    double sacRate = deepestStop.m_sacRate;
+    
+    // Calculate gas consumption rate at depth
+    double consumptionRate = sacRate * ambientPressure;
+    
+    // Calculate total gas used during mission time
+    double gasUsedDuringMission = consumptionRate * m_mission;
+    
+    // Calculate pressure drop based on tank configuration
+    double pressureDrop = 0.0;
+    if (matchingGas->m_nbTanks > 0 && matchingGas->m_tankCapacity > 0) {
+        pressureDrop = gasUsedDuringMission / (
+            (g_parameters.m_calculateAPandTPonOneTank ? 1 : matchingGas->m_nbTanks) * matchingGas->m_tankCapacity);
+    }
+    
+    // Turn pressure = ascent pressure + mission pressure requirement
+    return getAP() + pressureDrop;
 }
 
-double DivePlan::getTurnTTS(){
-    // TODO: Implement
-    return 100;
+double DivePlan::getTurnTTS() {
+    // If no mission time is set, return the standard TTS
+    if (m_mission <= 0) {
+        return getTTS();
+    }
+
+    // uses the delta TTS function
+    double deltaTTS = getTTSDelta(-m_mission);
+
+    return getTTS() + deltaTTS;
+
 }
 
 double DivePlan::getAP() {
@@ -355,7 +434,8 @@ double DivePlan::getAP() {
     // Calculate pressure consumption based on tanks and capacity
     double pressureConsumed = 0.0;
     if (matchingGas->m_nbTanks > 0 && matchingGas->m_tankCapacity > 0) {
-        pressureConsumed = totalConsumption / (matchingGas->m_nbTanks * matchingGas->m_tankCapacity);
+        pressureConsumed = totalConsumption / (
+            (g_parameters.m_calculateAPandTPonOneTank ? 1 : matchingGas->m_nbTanks) * matchingGas->m_tankCapacity);
     }
     
     // Add reserve pressure to get the minimum starting pressure (AP)
@@ -824,7 +904,6 @@ void DivePlan::printPlan(std::vector<DiveStep> profile){
         if (profile[i].m_phase == Phase::DESCENDING)          printf("DESC | ");
         if (profile[i].m_phase == Phase::GAS_SWITCH)          printf("GAS  | ");
         if (profile[i].m_phase == Phase::STOP)                printf("STOP | ");
-        if (profile[i].m_phase == Phase::MISSION)             printf("MISS | ");
         if (profile[i].m_phase == Phase::DECO)                printf("DECO | ");
         if (profile[i].m_phase == Phase::ASCENDING)           printf("ASC  | ");
         if (profile[i].m_phase == Phase::GROUPED_ASCENDING)   printf("ASC* | ");

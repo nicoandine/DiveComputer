@@ -48,6 +48,8 @@ public:
     double m_noFlyPressure;
     double m_noFlyGf;
     double m_noFlyTimeIncrement;
+
+    double m_calculateAPandTPonOneTank = true;
 };
 
 // Global parameters object

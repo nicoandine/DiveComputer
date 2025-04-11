@@ -18,9 +18,6 @@ std::string getPhaseString(Phase phase) {
         case Phase::DECO:
             phaseString = "Deco";
             break;
-        case Phase::MISSION:
-            phaseString = "Mission";
-            break;
         case Phase::GAS_SWITCH:
             phaseString = "Gas switch";
             break;
@@ -48,10 +45,7 @@ std::string getPhaseIcon(Phase phase) {
             phaseString = "↓";  // Vertical arrow pointing down
             break;
         case Phase::STOP:
-            phaseString = "→";  // Horizontal arrow pointing right
-            break;
-        case Phase::MISSION:
-            phaseString = "⇒";  // Double horizontal arrow pointing right
+            phaseString = "⇒";  // Horizontal arrow pointing right
             break;
         case Phase::DECO:
             phaseString = "🕒";  // Clock symbol

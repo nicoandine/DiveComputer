@@ -79,34 +79,58 @@ void DivePlanWindow::setupSummaryWidget() {
     // Add TTS Target with explicit style for both label and value
     QLabel* ttsTargetTitle = new QLabel("TTS Target:", topWidget1);
     ttsTargetTitle->setStyleSheet(PLAIN_STYLE);
-    ttsTargetLabel = new QLabel("--", topWidget1);
+    ttsTargetLabel = new QLabel("-- min", topWidget1);
     ttsTargetLabel->setStyleSheet(PLAIN_STYLE);
     formLayout->addRow(ttsTargetTitle, ttsTargetLabel);
     
     // Add Max TTS with explicit style for both label and value
     QLabel* maxTtsTitle = new QLabel("TTS Max:", topWidget1);
     maxTtsTitle->setStyleSheet(PLAIN_STYLE);
-    maxTtsLabel = new QLabel("--", topWidget1);
-    maxTtsLabel->setStyleSheet(PLAIN_STYLE);
-    formLayout->addRow(maxTtsTitle, maxTtsLabel);
     
-    // Add to summary labels for visibility toggling
+    // Create a container widget for consistent visibility management
+    QWidget* maxTtsWidget = new QWidget(topWidget1);
+    maxTtsWidget->setStyleSheet(PLAIN_STYLE);
+    QHBoxLayout* maxTtsLayout = new QHBoxLayout(maxTtsWidget);
+    maxTtsLayout->setContentsMargins(0, 0, 0, 0);
+    maxTtsLayout->setSpacing(0);
+    
+    maxTtsLabel = new QLabel("-- min", maxTtsWidget);
+    maxTtsLabel->setStyleSheet(PLAIN_STYLE);
+    maxTtsLayout->addWidget(maxTtsLabel);
+    
+    formLayout->addRow(maxTtsTitle, maxTtsWidget);
+    
+    // Store the title and the LABEL (not the widget) for value updates
     m_summaryLabels.append(qMakePair(maxTtsTitle, maxTtsLabel));
+    
+    // Create a new list to track widget containers for visibility
+    // This avoids the type mismatch in m_summaryLabels
+    m_summaryWidgets.append(qMakePair(maxTtsTitle, maxTtsWidget));
     
     // Add Max Time with explicit style for both label and value
     QLabel* maxTimeTitle = new QLabel("Max BT:", topWidget1);
     maxTimeTitle->setStyleSheet(PLAIN_STYLE);
-    maxTimeLabel = new QLabel("--", topWidget1);
+    
+    QWidget* maxTimeWidget = new QWidget(topWidget1);
+    maxTimeWidget->setStyleSheet(PLAIN_STYLE);
+    QHBoxLayout* maxTimeLayout = new QHBoxLayout(maxTimeWidget);
+    maxTimeLayout->setContentsMargins(0, 0, 0, 0);
+    maxTimeLayout->setSpacing(0);
+    
+    maxTimeLabel = new QLabel("-- min", maxTimeWidget);
     maxTimeLabel->setStyleSheet(PLAIN_STYLE);
-    formLayout->addRow(maxTimeTitle, maxTimeLabel);
+    maxTimeLayout->addWidget(maxTimeLabel);
     
-    // Add to summary labels for visibility toggling
+    formLayout->addRow(maxTimeTitle, maxTimeWidget);
+    
+    // Store both the label for value updates and the widget for visibility
     m_summaryLabels.append(qMakePair(maxTimeTitle, maxTimeLabel));
+    m_summaryWidgets.append(qMakePair(maxTimeTitle, maxTimeWidget));
     
-    // Add TTS Delta with explicit style for both label and value - using the Greek Delta symbol
+    // Add TTS Delta with explicit style for both label and value
     QLabel* ttsDeltaTitle = new QLabel("\u0394 TTS +5min:", topWidget1);
     ttsDeltaTitle->setStyleSheet(PLAIN_STYLE);
-    ttsDeltaLabel = new QLabel("--", topWidget1);
+    ttsDeltaLabel = new QLabel("-- min", topWidget1);
     ttsDeltaLabel->setStyleSheet(PLAIN_STYLE);
     formLayout->addRow(ttsDeltaTitle, ttsDeltaLabel);
     
@@ -125,12 +149,12 @@ void DivePlanWindow::setupSummaryWidget() {
     apLabel = new QLabel("-- bar", apWidget);
     apLabel->setStyleSheet(PLAIN_STYLE);
     apLayout->addWidget(apLabel);
-
     
     formLayout->addRow(apLabelTitle, apWidget);
     
-    // Track both labels for visibility toggling
+    // Store both the label for value updates and the widget for visibility
     m_summaryLabels.append(qMakePair(apLabelTitle, apLabel));
+    m_summaryWidgets.append(qMakePair(apLabelTitle, apWidget));
     
     // Create the mission input (editable, conditionally shown) with min unit on the right
     QLabel* missionLabelTitle = new QLabel("Mission:", topWidget1);
@@ -168,10 +192,22 @@ void DivePlanWindow::setupSummaryWidget() {
     // Add Turn TTS (conditionally shown)
     QLabel* turnTtsLabelTitle = new QLabel("Turn TTS:", topWidget1);
     turnTtsLabelTitle->setStyleSheet(PLAIN_STYLE);
-    turnTtsLabel = new QLabel("--", topWidget1);
+    
+    QWidget* turnTtsWidget = new QWidget(topWidget1);
+    turnTtsWidget->setStyleSheet(PLAIN_STYLE);
+    QHBoxLayout* turnTtsLayout = new QHBoxLayout(turnTtsWidget);
+    turnTtsLayout->setContentsMargins(0, 0, 0, 0);
+    turnTtsLayout->setSpacing(0);
+    
+    turnTtsLabel = new QLabel("-- min", turnTtsWidget);
     turnTtsLabel->setStyleSheet(PLAIN_STYLE);
-    formLayout->addRow(turnTtsLabelTitle, turnTtsLabel);
+    turnTtsLayout->addWidget(turnTtsLabel);
+    
+    formLayout->addRow(turnTtsLabelTitle, turnTtsWidget);
+    
+    // Store both the label for value updates and the widget for visibility
     m_summaryLabels.append(qMakePair(turnTtsLabelTitle, turnTtsLabel));
+    m_summaryWidgets.append(qMakePair(turnTtsLabelTitle, turnTtsWidget));
     
     // Add TP with bar unit on the right (conditionally shown)
     QLabel* tpLabelTitle = new QLabel("TP:", topWidget1);
@@ -190,8 +226,9 @@ void DivePlanWindow::setupSummaryWidget() {
     
     formLayout->addRow(tpLabelTitle, tpWidget);
     
-    // Track both labels for visibility toggling
+    // Store both the label for value updates and the widget for visibility
     m_summaryLabels.append(qMakePair(tpLabelTitle, tpLabel));
+    m_summaryWidgets.append(qMakePair(tpLabelTitle, tpWidget));
     
     // Add the form layout to the summary layout
     summaryLayout->addLayout(formLayout);
@@ -217,8 +254,7 @@ void DivePlanWindow::refreshDiveSummary() {
     ttsTargetLabel->setText(QString::number(tts, 'f', 0) + " min");
     
     // Update TTS Delta - always visible
-    // double ttsDelta = m_divePlan->getTTSDelta(5);
-    double ttsDelta = 0;
+    double ttsDelta = m_divePlan->getTTSDelta(5);
     ttsDeltaLabel->setText(QString::number(ttsDelta, 'f', 0) + " min");
     
     // Show/hide and update all AP-dependent elements
@@ -235,15 +271,19 @@ void DivePlanWindow::refreshDiveSummary() {
 
     // Process all elements using their titles
     const QStringList apDependentTitles = {"Max BT:", "TTS Max:", "AP:"};
+    
+    // Update visibility of container widgets first
+    for (const auto& pair : m_summaryWidgets) {
+        if (apDependentTitles.contains(pair.first->text())) {
+            // Set visibility for both the title and its container widget
+            pair.first->setVisible(showAP);
+            pair.second->setVisible(showAP);
+        }
+    }
+    
+    // Update values for labels
     for (const auto& pair : m_summaryLabels) {
         if (apDependentTitles.contains(pair.first->text())) {
-            // Set visibility
-            pair.first->setVisible(showAP);
-            QWidget* parentWidget = qobject_cast<QWidget*>(pair.second->parent());
-            if (parentWidget) {
-                parentWidget->setVisible(showAP);
-            }
-            
             // Update values if visible
             if (showAP) {
                 if (pair.first->text() == "Max BT:") {
@@ -265,15 +305,15 @@ void DivePlanWindow::refreshDiveSummary() {
     // Show/hide mission-related rows
     bool hasMission = (m_divePlan->m_mission > 0);
     
-    // Find and update Turn TTS visibility
-    for (const auto& pair : m_summaryLabels) {
+    // Find and update Turn TTS visibility and values
+    for (const auto& pair : m_summaryWidgets) {
         if (pair.first->text() == "Turn TTS:") {
             pair.first->setVisible(hasMission);
             pair.second->setVisible(hasMission);
             
             if (hasMission) {
                 double turnTts = m_divePlan->getTurnTTS();
-                pair.second->setText(QString::number(turnTts, 'f', 0) + " min");
+                turnTtsLabel->setText(QString::number(turnTts, 'f', 0) + " min");
             }
             break;
         }
@@ -282,20 +322,15 @@ void DivePlanWindow::refreshDiveSummary() {
     // Show/hide TP row (only in OC mode and with mission set)
     bool showTP = (m_divePlan->m_mode == diveMode::OC && hasMission);
     
-    // Find and update TP visibility
-    for (int i = 0; i < m_summaryLabels.size(); i++) {
-        const auto& pair = m_summaryLabels[i];
+    // Find and update TP visibility and values
+    for (const auto& pair : m_summaryWidgets) {
         if (pair.first->text() == "TP:") {
-            // Make parent widget visible/invisible to control both value and unit
             pair.first->setVisible(showTP);
-            QWidget* parentWidget = qobject_cast<QWidget*>(pair.second->parent());
-            if (parentWidget) {
-                parentWidget->setVisible(showTP);
-            }
+            pair.second->setVisible(showTP);
             
             if (showTP) {
                 double tp = m_divePlan->getTP();
-                pair.second->setText(QString::number(tp, 'f', 0) + " bar");
+                tpLabel->setText(QString::number(tp, 'f', 0) + " bar");
             }
             break;
         }
@@ -303,7 +338,6 @@ void DivePlanWindow::refreshDiveSummary() {
     
     isRefreshing = false;
 }
-
 
 void DivePlanWindow::onGFChanged() {
     // Read the new values

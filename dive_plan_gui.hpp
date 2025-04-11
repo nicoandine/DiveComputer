@@ -185,6 +185,7 @@ private:
     QLabel *turnTtsLabel;
     QLabel *tpLabel;
     QVector<QLabel*> m_summaryUnits;  // To track unit labels for AP and TP
+    QVector<QPair<QLabel*, QWidget*>> m_summaryWidgets;  // To track widget containers
 
     // For tracking label pairs to control visibility
     QVector<QPair<QLabel*, QLabel*>> m_summaryLabels;

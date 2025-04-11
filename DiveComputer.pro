@@ -27,6 +27,7 @@ SOURCES += \
     dive_plan_gui_menu.cpp \
     dive_plan_gui_gaslist.cpp \
     dive_plan_gui_setpoints.cpp \
+    dive_plan_gui_summary.cpp \
     placeholder_gui.cpp \
     main_gui.cpp
 

@@ -236,8 +236,8 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
     tempDivePlan.calculate();
     maxTTS = tempDivePlan.getTTS();
 
-    // updates the stopstep for max time
-    m_stopSteps.m_stopSteps[0].m_time = maxTime;
+    // if we wanted to update the stopstep for max time
+    // m_stopSteps.m_stopSteps[0].m_time = maxTime;
 
     return std::make_pair(maxTime, maxTTS);
 }

@@ -4,6 +4,7 @@
 
 #include "qtheaders.hpp"
 #include <functional>
+#include "global.hpp"
 
 namespace DiveComputer {
 
@@ -62,17 +63,27 @@ public:
     }
     
     // Create numeric cell with proper formatting
-    static QTableWidgetItem* createNumericCell(double value, int precision = 1, bool editable = false) {
-        QTableWidgetItem* item = new QTableWidgetItem(QString::number(value, 'f', precision));
+    static QTableWidgetItem* createNumericCell(double value, int precision, bool isEditable) {
+        QTableWidgetItem *item = new QTableWidgetItem();
+        
+        // Format the number with the specified precision
+        QString formattedValue = QString::number(value, 'f', precision);
+        item->setText(formattedValue);
+        
+        // Set alignment to center
         item->setTextAlignment(Qt::AlignCenter);
         
-        if (!editable) {
+        // Make read-only if not editable
+        if (!isEditable) {
             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+        } else {
+            // Apply editable style using our helper function
+            applyEditableCellStyle(item);
         }
         
         return item;
     }
-    
+
     // Highlight cell based on condition
     static void highlightCell(QTableWidgetItem* item, bool condition, 
                             const QColor& color = QColor(255, 200, 200)) {

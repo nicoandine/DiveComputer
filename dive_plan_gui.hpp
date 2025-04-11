@@ -123,7 +123,7 @@ private:
     void handleSplitterMovement(QSplitter* splitter, int index);
     void updateSplitterVisibility(QSplitter* splitter);
     
-    QWidget* graphicWidget;
+    // QWidget* graphicWidget;
 
     // Menu-related members
     QMenu* m_divePlanningMenu;
@@ -137,13 +137,13 @@ private:
     void updateMenuState();
 
     // UI controls
-    QComboBox *modeComboBox;
-    QCheckBox *bailoutCheckBox;
+    // QComboBox *modeComboBox;
+    //QCheckBox *bailoutCheckBox;
     QTableWidget *stopStepsTable;
     QTableWidget* setpointsTable;
     QTableWidget *divePlanTable;
     QTableWidget *gasesTable;
-    std::vector<int> m_gasRowToOriginalIndex; // Maps visible row indices to original gas indices
+    QWidget *topWidget1; // Reference to the top-left widget (for summary display)
 
     // Track splitters for standardized behavior
     QSplitter* mainSplitter = nullptr; // Main splitter between left and right panels
@@ -164,6 +164,7 @@ private:
     bool m_columnsInitialized = false;
     
     // Add gas table related members
+    std::vector<int> m_gasRowToOriginalIndex; // Maps visible row indices to original gas indices
     bool m_gasesColumnsInitialized = false;  // Initialize to false!
     std::vector<int> m_gasesColumnWidths;
     int m_totalGasesWidth = 0;  // Initialize to 0!
@@ -171,6 +172,27 @@ private:
    // Progress dialog
     std::unique_ptr<QProgressDialog> m_progressDialog;
     void showProgressDialog(const QString& message);
+
+    // Summary widget elements
+    QLineEdit *gfLowEdit;
+    QLineEdit *gfHighEdit;
+    QLineEdit *missionEdit;
+    QLabel *ttsTargetLabel;
+    QLabel *maxTtsLabel;
+    QLabel *maxTimeLabel;
+    QLabel *ttsDeltaLabel;
+    QLabel *apLabel;
+    QLabel *turnTtsLabel;
+    QLabel *tpLabel;
+    QVector<QLabel*> m_summaryUnits;  // To track unit labels for AP and TP
+
+    // For tracking label pairs to control visibility
+    QVector<QPair<QLabel*, QLabel*>> m_summaryLabels;
+    QVector<QPair<QLabel*, QWidget*>> m_summaryEdits;
+
+    // Summary widget methods
+    void setupSummaryWidget();
+    void refreshDiveSummary();
 
     // UI methods
     void setupUI();
@@ -186,7 +208,6 @@ private:
     void highlightWarningCells();
     void setupGasesTable();
     void refreshGasesTable();
-    
     void updateGasTablePressures();
     void gasTableCellChanged(int row, int column);
 
@@ -206,7 +227,6 @@ private slots:
     void onSplitterMoved(int pos, int index);
     void ccModeActivated();
     
-    // Make sure resizeDivePlanTable and resizeGasesTable are declared as slots
     void resizeDivePlanTable();
     void resizeGasesTable();
     
@@ -218,6 +238,11 @@ private slots:
     // Helper methods 
     QString  getPhaseString(Phase phase);
     QString  getStepModeString(stepMode mode);
+
+    // Summary widget methods
+    void onGFChanged();
+    void onMissionChanged();
+
 };
 
 } // namespace DiveComputer

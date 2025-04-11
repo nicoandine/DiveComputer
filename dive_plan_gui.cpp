@@ -50,9 +50,13 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
     setupUI();
     
     QElapsedTimer timer;
+
+    // Initial refresh of widgets
     timer.start();
-    
-    // Initial refresh of tables
+    refreshDiveSummary();
+    qDebug() << "refreshDiveSummary() took" << timer.elapsed() << "ms";
+
+    timer.restart();
     refreshStopStepsTable();
     qDebug() << "Initial refreshStopStepsTable() took" << timer.elapsed() << "ms";
     
@@ -187,14 +191,13 @@ void DivePlanWindow::setupUI() {
     topWidgetsSplitter = new QSplitter(Qt::Horizontal, visualizationWidget);
     qDebug() << "topWidgetsSplitter created:" << (topWidgetsSplitter != nullptr);
     
-    // First top widget (DiveStatistics)
-    QWidget *topWidget1 = new QWidget(topWidgetsSplitter);
-    topWidget1->setMinimumHeight(50);  // Reduced from 200
-    topWidget1->setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;");
+    // First top widget (Dive Summary)
+    topWidget1 = new QWidget(topWidgetsSplitter);
+    topWidget1->setMinimumHeight(50);
+    topWidget1->setStyleSheet("border: 1px solid #ccc;"); // Removed background color
     QVBoxLayout *topWidget1Layout = new QVBoxLayout(topWidget1);
-    QLabel *diveStatsLabel = new QLabel("DiveStatistics", topWidget1);
-    diveStatsLabel->setAlignment(Qt::AlignCenter);
-    topWidget1Layout->addWidget(diveStatsLabel);
+    topWidget1Layout->setContentsMargins(5, 5, 5, 5);
+
     
     // Second top widget (GasConsumption)
     QWidget *topWidget2 = new QWidget(topWidgetsSplitter);
@@ -216,12 +219,6 @@ void DivePlanWindow::setupUI() {
     // Add top widgets splitter to visualization layout
     visualizationLayout->addWidget(topWidgetsSplitter);
     
-    // Commented out chart widget section
-    // m_chartWidget = new QWidget(visualizationWidget);
-    // m_chartWidget->setMinimumHeight(200);
-    // m_chartWidget->setStyleSheet("border: 1px solid #ccc;");
-    // visualizationLayout->addWidget(m_chartWidget, 1); // Give it stretch factor to take available space
-
     // Add a text label to indicate the slider functionality
     QLabel *sliderHintLabel = new QLabel("⟿ Drag to resize dive plan table ⟿", visualizationWidget);
     sliderHintLabel->setAlignment(Qt::AlignCenter);
@@ -259,7 +256,10 @@ void DivePlanWindow::setupUI() {
     
     // Configure all splitters after widgets creation
     setupSplitters();
-    
+
+    // Setup summary widget
+    setupSummaryWidget();
+
     // Force an immediate layout pass
     QApplication::processEvents();
 }
@@ -324,6 +324,8 @@ void DivePlanWindow::refreshDivePlan() {
         qDebug() << "DivePlanTable refresh deferred (not visible)";
     }
 
+    // Refresh the summary widget
+    refreshDiveSummary();
     isRefreshing = false;
 }
 
@@ -458,8 +460,8 @@ void DivePlanWindow::configureSplitter(
     int handleWidth, 
     const QString& handleDecoration, 
     const QList<int>& defaultSizes, 
-    bool collapsible) 
-{
+    bool collapsible){
+        
     if (!splitter) return;
     
     // Set splitter name for identification

@@ -93,13 +93,9 @@ void DivePlanWindow::setupMenu() {
     });
     m_divePlanningMenu->addAction(m_ocModeAction);
     
-    // Add separator
     m_divePlanningMenu->addSeparator();
     
-    // Define mission action
-    QAction* defineMissionAction = new QAction("Define mission", this);
-    connect(defineMissionAction, &QAction::triggered, this, &DivePlanWindow::defineMission);
-    m_divePlanningMenu->addAction(defineMissionAction);
+    // Remove "Define mission" action as it's now handled in the summary widget
     
     // Max time action
     QAction* maxTimeAction = new QAction("Max time", this);

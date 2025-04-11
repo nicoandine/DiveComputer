@@ -17,6 +17,14 @@ namespace DiveComputer {
     const std::string LOGO_FILE_NAME = "logo.png";
     const int COLUMN_WIDTH = 215;
 
+    // Style constants for consistent UI
+    extern const QString PLAIN_STYLE;
+    extern const QString EDITABLE_STYLE;
+    
+    // Helper function to set style for editable cells
+    void applyEditableCellStyle(QTableWidgetItem* item);
+
+
     void   ensureAppInfoSet();
     std::string getFilePath(const std::string& filename);
     void setWindowSizeAndPosition(QWidget* window, int preferredWidth, int preferredHeight, WindowPosition position);

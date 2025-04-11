@@ -358,6 +358,18 @@ void DivePlanWindow::gasTableCellChanged(int row, int column) {
                 
                 // Update the gas table with new end pressures
                 updateGasTablePressures();
+                
+                // If tank parameters changed, update summary as max time may change
+                if (column == GAS_COL_NB_TANKS || 
+                    column == GAS_COL_TANK_CAPACITY || 
+                    column == GAS_COL_FILLING_PRESSURE) {
+                    // Recalculate and refresh the dive plan
+                    m_divePlan->calculate();
+                    m_divePlan->updateGasConsumption();
+                    
+                    // Update the summary
+                    refreshDiveSummary();
+                }
             }
         } else {
             // Revert to previous value if validation fails

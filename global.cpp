@@ -2,6 +2,19 @@
 
 namespace DiveComputer {
 
+// Define the styles as constants
+const QString PLAIN_STYLE = "background-color: transparent; padding: 2px 5px; border: none;";
+const QString EDITABLE_STYLE = "background-color: rgba(100, 100, 100, 0.4); color: white; padding: 2px 5px; border: 1px solid #4aa0ff; border-radius: 3px;";
+    
+void applyEditableCellStyle(QTableWidgetItem* item) {
+    if (!item) return;
+        
+    // For standard QTableWidgetItems
+    item->setTextAlignment(Qt::AlignCenter);
+    item->setBackground(QColor(100, 100, 100, 102)); // 0.4 opacity
+    item->setForeground(QColor(255, 255, 255));      // White text
+}
+
 // Ensure app info is properly set for path resolution
 void ensureAppInfoSet() {
     // Set the organization and application name if not already set

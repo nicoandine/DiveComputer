@@ -47,7 +47,7 @@ public:
     int  m_diveNumber;
     bool m_boosted;
     SetPoints m_setPoints;
-    double m_mission;
+    double m_mission = 0.0;
 
     std::vector<CompartmentPP> m_initialPressure;
     std::vector<DiveStep> m_diveProfile;

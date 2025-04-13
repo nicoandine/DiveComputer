@@ -30,8 +30,7 @@ void DivePlanWindow::stopStepCellChanged(int row, int column) {
 
             // Rebuild and refreshthe dive plan
             m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-            rebuildDivePlan();
-            refreshDivePlan();
+            refreshWindow();
 
             // Allow UI to process events after the edit
             QApplication::processEvents();
@@ -70,7 +69,7 @@ void DivePlanWindow::addStopStep() {
     // Rebuild the dive plan separately
     m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     rebuildDivePlan();
-    refreshDivePlan();
+    refreshWindow();
 
     m_isUpdating = false;
 }
@@ -100,20 +99,10 @@ void DivePlanWindow::deleteStopStep(int row) {
         // Rebuild the dive plan separately
         m_divePlan->m_divePlanDirty = true;  // Mark as dirty
         rebuildDivePlan();
-        refreshDivePlan();
+        refreshWindow();
     }
 
     m_isUpdating = false;
-    
-    /*
-    // As a fallback, schedule another refresh after a short delay
-    QTimer::singleShot(100, this, [this]() {
-        if (!m_isUpdating) {
-            refreshStopStepsTable();
-            stopStepsTable->repaint();
-        }
-    });
-    */
 }
 
 void DivePlanWindow::setupStopStepsTable() {
@@ -136,7 +125,10 @@ void DivePlanWindow::setupStopStepsTable() {
 }
 
 void DivePlanWindow::refreshStopStepsTable() {
-    if (!m_divePlan->m_UIstopStepsDirty) return;
+    if (!m_divePlan->m_UIstopStepsDirty){
+        printf("Stopstep table refresh - SKIPPED\n");
+        return;
+    }
     
     if (m_isUpdating) {
         qDebug() << "Skipping refreshStopStepsTable() - already updating";

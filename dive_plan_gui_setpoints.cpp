@@ -42,7 +42,7 @@ void DivePlanWindow::setpointCellChanged(int row, int column) {
             // Unlike stop steps, we don't need to rebuild for setpoint changes
             // We just need to refresh the dive plan to recalculate with new setpoints
             m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-            refreshDivePlan();
+            refreshWindow();
             
             // Since sorting might have changed positions, refresh the table
             refreshSetpointsTable();
@@ -78,7 +78,7 @@ void DivePlanWindow::addSetpoint() {
 
     // Refresh the dive plan WITHOUT rebuilding
     m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-    refreshDivePlan();
+    refreshWindow();
 
     // Allow UI to process events after the edit
     QApplication::processEvents();
@@ -106,7 +106,7 @@ void DivePlanWindow::deleteSetpoint(int row) {
 
         // Refresh the dive plan
         m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-        refreshDivePlan();
+        refreshWindow();
 
         // Allow UI to process events after the edit
         QApplication::processEvents();
@@ -132,7 +132,10 @@ void DivePlanWindow::setupSetpointsTable() {
 }
 
 void DivePlanWindow::refreshSetpointsTable() {
-    if (!m_divePlan->m_UIsetpointsDirty) return;
+    if (!m_divePlan->m_UIsetpointsDirty){
+        printf("Setpoint table refresh - SKIPPED\n");    
+        return;
+    }
 
     if (m_isUpdating) {
         qDebug() << "Skipping refreshSetpointsTable() - already updating";

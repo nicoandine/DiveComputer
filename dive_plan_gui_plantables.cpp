@@ -71,7 +71,10 @@ void DivePlanWindow::setupDivePlanTable() {
 }
 
 void DivePlanWindow::refreshDivePlanTable() {
-    if (!m_divePlan->m_UIdivePlanDirty) return;
+    if (!m_divePlan->m_UIdivePlanDirty){
+        printf("Diveplan table refresh - SKIPPED\n");
+        return;
+    }
 
     if (m_isUpdating) {
         qDebug() << "Skipping refreshDivePlanTable() - already updating";
@@ -85,6 +88,7 @@ void DivePlanWindow::refreshDivePlanTable() {
     timer.start();
 
     m_divePlan->calculate();
+    m_divePlan->updateGasConsumption();
 
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(divePlanTable, this, &DivePlanWindow::divePlanCellChanged, [this]() {
@@ -350,7 +354,7 @@ void DivePlanWindow::divePlanCellChanged(int row, int column) {
                             // Rebuild everything
                             m_divePlan->m_divePlanDirty = true;  // Mark as dirty
                             rebuildDivePlan();
-                            refreshDivePlan();
+                            refreshWindow();
                             
                             // Allow UI to process events
                             QApplication::processEvents();

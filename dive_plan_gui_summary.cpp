@@ -237,10 +237,10 @@ void DivePlanWindow::setupSummaryWidget() {
     summaryLayout->addStretch();
     
     // Update the dive summary
-    refreshDiveSummary();
+    refreshWindow();
 }
 
-void DivePlanWindow::refreshDiveSummary() {
+void DivePlanWindow::refreshDiveSummaryTable() {
     if (!m_divePlan) return;
     
     if (!m_divePlan->m_summaryDirty) {
@@ -377,8 +377,7 @@ void DivePlanWindow::onGFChanged() {
     // Refresh UI
     m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     m_divePlan->m_summaryDirty = true;
-    refreshDivePlan();
-    refreshDiveSummary();
+    refreshWindow();
 }
 
 void DivePlanWindow::onMissionChanged() {
@@ -401,8 +400,7 @@ void DivePlanWindow::onMissionChanged() {
     // Refresh UI
     m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     m_divePlan->m_summaryDirty = true;
-    refreshDivePlan();
-    refreshDiveSummary();
+    refreshWindow();
 }
 
 } // namespace DiveComputer

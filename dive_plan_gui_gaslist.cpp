@@ -59,7 +59,10 @@ void DivePlanWindow::setupGasesTable() {
 }
 
 void DivePlanWindow::refreshGasesTable() {
-    if (!m_divePlan->m_UIgasesDirty) return;
+    if (!m_divePlan->m_UIgasesDirty){
+        printf("Gaslist table refresh - SKIPPED\n");
+        return;
+    }
 
     if (m_isUpdating) {
         qDebug() << "Skipping refreshGasesTable() - already updating";
@@ -71,6 +74,8 @@ void DivePlanWindow::refreshGasesTable() {
     // Log performance
     QElapsedTimer timer;
     timer.start();
+
+    m_divePlan->updateGasConsumption();
 
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(gasesTable, this, &DivePlanWindow::gasTableCellChanged, [this]() {
@@ -380,7 +385,8 @@ void DivePlanWindow::gasTableCellChanged(int row, int column) {
                     m_divePlan->updateGasConsumption();
                     
                     // Update the summary
-                    refreshDiveSummary();
+                    m_divePlan->m_summaryDirty = true;
+                    refreshWindow();
                 }
             }
         } else {

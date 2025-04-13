@@ -49,11 +49,7 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
     setupUI();
 
     // Initial refresh of widgets
-    refreshDiveSummary();
-    refreshStopStepsTable();
-    refreshSetpointsTable();
-    refreshDivePlanTable();
-    refreshGasesTable();
+    refreshWindow();
     
     // Update setpoint visibility based on current mode
     updateSetpointVisibility();
@@ -76,6 +72,14 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
 }
 
 DivePlanWindow::~DivePlanWindow() {}
+
+void DivePlanWindow::refreshWindow(){
+    refreshDivePlanTable();
+    refreshDiveSummaryTable();
+    refreshGasesTable();
+    refreshSetpointsTable();
+    refreshStopStepsTable();
+}
 
 void DivePlanWindow::setupUI() {
     // Log performance
@@ -268,30 +272,6 @@ void DivePlanWindow::rebuildDivePlan() {
     isRebuilding = false;
 }
 
-void DivePlanWindow::refreshDivePlan() {
-    static bool isRefreshing = false;
-    if (isRefreshing || !m_divePlan) {
-        qDebug() << "Preventing recursive refreshDivePlan call or null plan";
-        return;
-    }
-    
-    isRefreshing = true;
-    
-    // Update the dive plan
-    m_divePlan->calculate(); // checks if dirty and calculates if so
-    m_divePlan->updateGasConsumption();
-    refreshGasesTable();
-    
-    // Check if the dive plan table is visible by checking its height
-    bool isTableVisible = divePlanTable && divePlanTable->isVisible() && divePlanTable->height() > 0;
-    
-    if (isTableVisible) {
-        refreshDivePlanTable();
-    } 
-
-    isRefreshing = false;
-}
-
 QString DivePlanWindow::getPhaseString(Phase phase) {
     return QString::fromStdString(getPhaseIcon(phase));
 }
@@ -314,7 +294,7 @@ void DivePlanWindow::ccModeActivated() {
     // Rebuild and refresh the dive plan
     m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     rebuildDivePlan();
-    refreshDivePlan();
+    refreshWindow();
         
     // Allow UI to process events after the edit
     QApplication::processEvents();
@@ -334,13 +314,12 @@ void DivePlanWindow::setMaxTime() {
     }
     m_divePlan->m_diveProfile[firstStopIndex].m_time = result.first;
     m_divePlan->calculate();
-    refreshDivePlan(); // includes refreshing the gas table
-    refreshStopStepsTable();
+    refreshWindow();
 }
 
 void DivePlanWindow::optimiseDecoGas() {
     m_divePlan->optimiseDecoGas();
-    refreshDivePlan(); // includes refreshing the gas table
+    refreshWindow(); // includes refreshing the gas table
 }
 
 // Handles menu activation
@@ -643,12 +622,8 @@ void DivePlanWindow::handleSplitterMovement(QSplitter* splitter, int /*index*/) 
                     infoLabel->setVisible(!isCollapsed);
                 }
                 
-                // Handle refresh logic for dive plan
-                if (!isCollapsed) {
-                    refreshDivePlanTable();
-                    QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);
-                }
-                    
+                refreshDivePlanTable();
+                QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);   
                 resizeDivePlanTable();
             }
         }
@@ -719,11 +694,8 @@ void DivePlanWindow::updateWidgetVisibility(QSplitter* splitter, const QList<int
                     infoLabel->setVisible(showDivePlan);
                 }
                 
-                // Handle refresh logic for previously hidden table
-                if (showDivePlan) {
-                    refreshDivePlanTable();
-                    QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);
-                }
+                refreshDivePlanTable();
+                QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);
             }
         }
         else if (splitterName == "topWidgetsSplitter") {
@@ -861,9 +833,7 @@ void DivePlanWindow::showEvent(QShowEvent* event) {
     
     // Additional fallback for when layout gets properly settled
     QTimer::singleShot(800, this, [this]() {
-        if (divePlanTable && divePlanTable->isVisible()) {
-            resizeDivePlanTable();
-        }
+        resizeDivePlanTable();
         resizeGasesTable();
     });
 }
@@ -872,7 +842,7 @@ void DivePlanWindow::resizeEvent(QResizeEvent* event) {
     QMainWindow::resizeEvent(event);
     
     // Only resize the dive plan table if it's visible
-    if (divePlanTable && divePlanTable->isVisible() && divePlanTable->height() > 0) {
+    if (divePlanTable) {
         resizeDivePlanTable();
     }
     

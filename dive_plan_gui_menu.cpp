@@ -34,7 +34,7 @@ void DivePlanWindow::setupMenu() {
         
         // Update the display
         rebuildDivePlan();
-        refreshDivePlan();
+        refreshWindow();
         
         qDebug() << "Bailout toggle took" << timer.elapsed() << "ms";
         
@@ -54,10 +54,7 @@ void DivePlanWindow::setupMenu() {
         
         // Toggle SP Boosted mode
         m_divePlan->m_boosted = m_gfBoostedAction->isChecked();
-        
-        // Update the display - only needs calculate() which is called by refreshDivePlan()
-        refreshDivePlan();
-        
+        refreshWindow();
         qDebug() << "SP Boosted toggle took" << timer.elapsed() << "ms";
         
         // Allow UI to process events after the edit
@@ -84,7 +81,7 @@ void DivePlanWindow::setupMenu() {
         
         // Rebuild and refresh the dive plan
         rebuildDivePlan();
-        refreshDivePlan();
+        refreshWindow();
         
         qDebug() << "OC Mode switch took" << timer.elapsed() << "ms";
         
@@ -146,7 +143,7 @@ void DivePlanWindow::diveModeChanged(int index) {
     // Rebuild the dive plan
     m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     rebuildDivePlan();
-    refreshDivePlan();
+    refreshWindow();
     
     // Allow UI to process events after the edit
     QApplication::processEvents();

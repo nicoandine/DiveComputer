@@ -190,26 +190,33 @@ private:
     QVector<QPair<QLabel*, QLabel*>> m_summaryLabels;
     QVector<QPair<QLabel*, QWidget*>> m_summaryEdits;
 
-    // Summary widget methods
-    void setupSummaryWidget();
-    void refreshDiveSummary();
-
-    // UI methods
-    void setupUI();
-    void setupStopStepsTable();
-    void setupDivePlanTable();
-    void refreshStopStepsTable();
-    void setupSetpointsTable();
-    void refreshSetpointsTable();
-    void updateSetpointVisibility();
+    // Refresh widgets
+    void refreshWindow();
     void refreshDivePlanTable();
-    void rebuildDivePlan();
-    void refreshDivePlan();
-    void highlightWarningCells();
-    void setupGasesTable();
+    void refreshDiveSummaryTable();
     void refreshGasesTable();
+    void refreshSetpointsTable();
+    void refreshStopStepsTable();
+
+    // Build the window
+    void setupUI();
+
+    // Build components
+    void setupDivePlanTable();
+    void rebuildDivePlan();
+
+    void setupSetpointsTable();
+    void updateSetpointVisibility();
+
+    void setupStopStepsTable();
+
+    void setupSummaryWidget();
+
+    void setupGasesTable();
     void updateGasTablePressures();
     void gasTableCellChanged(int row, int column);
+
+    void highlightWarningCells();
 
 private slots:
     // Registered slots

@@ -123,8 +123,6 @@ private:
     void handleSplitterMovement(QSplitter* splitter, int index);
     void updateSplitterVisibility(QSplitter* splitter);
     
-    // QWidget* graphicWidget;
-
     // Menu-related members
     QMenu* m_divePlanningMenu;
     QAction* m_ccModeAction;
@@ -155,7 +153,8 @@ private:
     QLabel *infoLabel;
     QSplitter *verticalSplitter;
     QPushButton *toggleTableButton;
-    bool m_tableDirty = false;
+
+    // check if already updating
     bool m_isUpdating = false;
 
     // Store original column widths for proportional resizing

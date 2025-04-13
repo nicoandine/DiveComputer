@@ -243,6 +243,15 @@ void DivePlanWindow::setupSummaryWidget() {
 void DivePlanWindow::refreshDiveSummary() {
     if (!m_divePlan) return;
     
+    if (!m_divePlan->m_summaryDirty) {
+        printf("DivePlanWindow::refreshDiveSummary() - SKIPPED\n");
+        return;
+    }
+
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Prevent recursion
     static bool isRefreshing = false;
     if (isRefreshing) return;
@@ -339,6 +348,10 @@ void DivePlanWindow::refreshDiveSummary() {
     }
     
     isRefreshing = false;
+
+    // Monitor performance
+    printf("DivePlanWindow::refreshDiveSummary() took %lld ms\n", timer.elapsed());
+    m_divePlan->m_summaryDirty = false;
 }
 
 void DivePlanWindow::onGFChanged() {
@@ -362,6 +375,8 @@ void DivePlanWindow::onGFChanged() {
     m_divePlan->calculate();
     
     // Refresh UI
+    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
+    m_divePlan->m_summaryDirty = true;
     refreshDivePlan();
     refreshDiveSummary();
 }
@@ -384,6 +399,8 @@ void DivePlanWindow::onMissionChanged() {
     m_divePlan->calculate();
     
     // Refresh UI
+    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
+    m_divePlan->m_summaryDirty = true;
     refreshDivePlan();
     refreshDiveSummary();
 }

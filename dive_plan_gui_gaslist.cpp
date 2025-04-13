@@ -59,11 +59,19 @@ void DivePlanWindow::setupGasesTable() {
 }
 
 void DivePlanWindow::refreshGasesTable() {
-    static bool isRefreshing = false;
-    if (isRefreshing) return;
+    if (!m_divePlan->m_UIgasesDirty) return;
+
+    if (m_isUpdating) {
+        qDebug() << "Skipping refreshGasesTable() - already updating";
+        return; // Prevent recursive calls
+    }
+
+    m_isUpdating = true;
     
-    isRefreshing = true;
-    
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(gasesTable, this, &DivePlanWindow::gasTableCellChanged, [this]() {
         // Get gases sorted by increasing O2 content
@@ -152,7 +160,10 @@ void DivePlanWindow::refreshGasesTable() {
     // Resize table columns
     resizeGasesTable();
 
-    isRefreshing = false;
+    // Monitor performance
+    printf("DivePlanWindow::refreshGasesTable() took %lld ms\n", timer.elapsed());
+
+    m_isUpdating = false;
 }
 
 void DivePlanWindow::resizeGasesTable() {
@@ -365,7 +376,7 @@ void DivePlanWindow::gasTableCellChanged(int row, int column) {
                     column == GAS_COL_FILLING_PRESSURE ||
                     column == GAS_COL_RESERVE_PRESSURE) {
                     // Recalculate and refresh the dive plan
-                    m_divePlan->calculate();
+                    m_divePlan->m_gasConsumptionDirty = true;  // Mark as dirty
                     m_divePlan->updateGasConsumption();
                     
                     // Update the summary

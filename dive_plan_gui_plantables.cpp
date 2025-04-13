@@ -71,6 +71,19 @@ void DivePlanWindow::setupDivePlanTable() {
 }
 
 void DivePlanWindow::refreshDivePlanTable() {
+    if (!m_divePlan->m_UIdivePlanDirty) return;
+
+    if (m_isUpdating) {
+        qDebug() << "Skipping refreshDivePlanTable() - already updating";
+        return; // Prevent recursive calls
+    }
+
+    m_isUpdating = true;
+
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     m_divePlan->calculate();
 
     // Use the TableHelper for safe update
@@ -201,6 +214,11 @@ void DivePlanWindow::refreshDivePlanTable() {
 
     // Ensure N2 column remains hidden
     divePlanTable->setColumnHidden(COL_N2_PERCENT, true);
+
+    // Monitor performance
+    printf("DivePlanWindow::refreshDivePlanTable() took %lld ms\n", timer.elapsed());
+
+    m_isUpdating = false;
 }
 
 void DivePlanWindow::resizeDivePlanTable() {
@@ -218,12 +236,6 @@ void DivePlanWindow::resizeDivePlanTable() {
     int scrollBarWidth = divePlanTable->verticalScrollBar()->isVisible() ? 
                          divePlanTable->verticalScrollBar()->width() : 0;
     int availableWidth = divePlanTable->width() - scrollBarWidth;
-    
-    // If table isn't visible or has no width, mark as dirty and return
-    if (availableWidth <= 0 || !divePlanTable->isVisible()) {
-        m_tableDirty = true;
-        return;
-    }
     
     // Temporarily disable updates to prevent flickering
     divePlanTable->setUpdatesEnabled(false);
@@ -284,7 +296,6 @@ void DivePlanWindow::resizeDivePlanTable() {
     
     // Re-enable updates
     divePlanTable->setUpdatesEnabled(true);
-    m_tableDirty = false;
 }
 
 void DivePlanWindow::divePlanCellChanged(int row, int column) {
@@ -337,6 +348,7 @@ void DivePlanWindow::divePlanCellChanged(int row, int column) {
                                                              newTime);
                             
                             // Rebuild everything
+                            m_divePlan->m_divePlanDirty = true;  // Mark as dirty
                             rebuildDivePlan();
                             refreshDivePlan();
                             

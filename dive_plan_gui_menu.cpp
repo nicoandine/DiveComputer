@@ -133,9 +133,6 @@ void DivePlanWindow::updateMenuState() {
 }
 
 void DivePlanWindow::diveModeChanged(int index) {
-    QElapsedTimer timer;
-    timer.start();
-    
     // Update dive plan mode
     diveMode newMode = static_cast<diveMode>(index);
     m_divePlan->m_mode = newMode;
@@ -147,11 +144,10 @@ void DivePlanWindow::diveModeChanged(int index) {
     updateSetpointVisibility();
 
     // Rebuild the dive plan
+    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     rebuildDivePlan();
     refreshDivePlan();
     
-    qDebug() << "diveModeChanged() took" << timer.elapsed() << "ms";
-
     // Allow UI to process events after the edit
     QApplication::processEvents();
 }

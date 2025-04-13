@@ -49,6 +49,8 @@ void DivePlan::build(){
     QElapsedTimer timer;
     timer.start();
 
+    printf("DivePlan::build() - START\n");
+
     clear();
 
     // Set mode
@@ -99,11 +101,23 @@ void DivePlan::build(){
     // Initialise the ppActual for Step 0
     m_diveProfile[0].m_ppActual = m_initialPressure;
 
+    // Set dirty flag as the profile has been rebuilt
+    m_divePlanDirty = true;
+    m_gasConsumptionDirty = true;
+    m_summaryDirty = true;
+
     // Monitor performance
     printf("DivePlan::build() took %lld ms\n", timer.elapsed());
+    printf("DivePlan::build() - END\n\n");
 }
 
-void DivePlan::calculate() {
+void DivePlan::calculate(bool force) {
+    // Skip calculation if not dirty and not forced
+    if (!force && !m_divePlanDirty) {
+        printf("DivePlan::calculate() - SKIPPED\n");
+        return;
+    }
+
     ErrorHandler::tryOperation([this]() {
         // Guard against inconsistent state
         if (m_diveProfile.empty()) {
@@ -113,6 +127,7 @@ void DivePlan::calculate() {
         // Log performance
         QElapsedTimer timer;
         timer.start();
+        printf("DivePlan::calculate() - START\n");
 
         m_firstDecoDepth = 0;
 
@@ -165,8 +180,16 @@ void DivePlan::calculate() {
 
         // Monitor performance
         printf("DivePlan::calculate() took %lld ms\n", timer.elapsed());
+        printf("DivePlan::calculate() - END\n\n");
 
     }, "DivePlan::calculate", "Calculation Error");
+
+    // Reset dirty flag after calculation
+    m_divePlanDirty = false;
+    m_UIdivePlanDirty = true;
+
+    m_gasConsumptionDirty = true;
+    m_summaryDirty = true;
 }
 
 void DivePlan::clearDecoSteps(){
@@ -177,11 +200,21 @@ void DivePlan::clearDecoSteps(){
     }
 }
 
-void DivePlan::updateGasConsumption() {
+void DivePlan::updateGasConsumption(bool force) {
+    // Skip calculation if not dirty and not forced
+    if (!force && !m_gasConsumptionDirty) {
+        printf("DivePlan::updateGasConsumption() - SKIPPED\n");
+        return;
+    }
+    
     if (m_gasAvailable.empty() || m_diveProfile.empty()) {
         return;
     }
     
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Reset consumption for all gases
     for (auto& gas : m_gasAvailable) {
         gas.m_consumption = 0.0;
@@ -208,9 +241,22 @@ void DivePlan::updateGasConsumption() {
             gas.m_endPressure = 0.0;
         }
     }
+
+    // Monitor performance
+    printf("DivePlan::updateGasConsumption() took %lld ms\n", timer.elapsed());
+
+    // Reset dirty flag after calculation
+    m_gasConsumptionDirty = false;
+    m_UIgasesDirty = true;
 }
 
 std::pair<double, double> DivePlan::getMaxTimeAndTTS() {       
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
+    printf("DivePlan::getMaxTimeAndTTS() - START\n");
+
     DivePlan tempDivePlan = *this;
     double maxTime = 0.0, maxTTS = 0.0;
 
@@ -226,6 +272,8 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
     }
 
     // Recalculate the dive plan
+    tempDivePlan.m_divePlanDirty = true;
+    tempDivePlan.m_gasConsumptionDirty = true;
     tempDivePlan.calculate();
     tempDivePlan.updateGasConsumption();
 
@@ -237,17 +285,21 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
     // iterate the time of the bottom phase until the gas is not enough
     while(tempDivePlan.enoughGasAvailable()){
         tempDivePlan.m_diveProfile[firstStopIndex].m_time += g_parameters.m_timeIncrementMaxTime;
+        tempDivePlan.m_divePlanDirty = true;
+        tempDivePlan.m_gasConsumptionDirty = true;
         tempDivePlan.calculate();
         tempDivePlan.updateGasConsumption();
     }
 
     tempDivePlan.m_diveProfile[firstStopIndex].m_time -= g_parameters.m_timeIncrementMaxTime;
     maxTime = std::max(0.0, tempDivePlan.m_diveProfile[firstStopIndex].m_time);
+    tempDivePlan.m_divePlanDirty = true;
     tempDivePlan.calculate();
     maxTTS = tempDivePlan.getTTS();
 
-    // if we wanted to update the stopstep for max time
-    // m_stopSteps.m_stopSteps[0].m_time = maxTime;
+    // Monitor performance
+    printf("DivePlan::getMaxTimeAndTTS() took %lld ms\n", timer.elapsed());
+    printf("DivePlan::getMaxTimeAndTTS() - END\n\n");
 
     return std::make_pair(maxTime, maxTTS);
 }
@@ -283,6 +335,11 @@ double DivePlan::getTTS(){
 }
 
 double DivePlan::getTTSDelta(double incrementTime){
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
+    printf("DivePlan::getTTSDelta() - START\n");
     DivePlan tempDivePlan = *this;
 
     // Find the deepest STOP phase in the dive profile
@@ -307,8 +364,12 @@ double DivePlan::getTTSDelta(double incrementTime){
         tempDivePlan.m_diveProfile[deepestStopIndex].m_time + incrementTime);
 
     // Recalculate the dive plan
+    tempDivePlan.m_divePlanDirty = true;
     tempDivePlan.calculate();
-    // tempDivePlan.updateGasConsumption();
+
+    // Monitor performance
+    printf("DivePlan::getTTSDelta() took %lld ms\n", timer.elapsed());
+    printf("DivePlan::getTTSDelta() - END\n\n");
 
     return tempDivePlan.getTTS() - getTTS();
 }
@@ -821,6 +882,10 @@ void DivePlan::updateRunTimes(){
 }
 
 void DivePlan::updateVariables(double GF){
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     updateStepsPhaseFromFirstDeco();
 
     for (int i = 0; i < nbOfSteps(); i++){
@@ -841,6 +906,9 @@ void DivePlan::updateVariables(double GF){
             m_diveProfile[0].m_runTime = m_diveProfile[0].m_time;
         }
     }
+
+    // Monitor performance
+    printf("DivePlan::updateVariables() took %lld ms\n", timer.elapsed());
 }
 
 void DivePlan::updateTimeProfile(){

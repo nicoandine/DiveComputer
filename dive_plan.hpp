@@ -54,12 +54,23 @@ public:
     std::vector<DiveStep> m_timeProfile;
     std::vector<GasAvailable> m_gasAvailable;
 
+    // dirty flags
+    bool m_divePlanDirty = true;  // Start as true to ensure initial calculation
+    bool m_summaryDirty = true;
+    bool m_gasConsumptionDirty = true;  // Start as true to ensure initial calculation
+
+    // UI dirty flags
+    bool m_UIdivePlanDirty = true;
+    bool m_UIstopStepsDirty = true;
+    bool m_UIsetpointsDirty = true;
+    bool m_UIgasesDirty = true;
+
     // Core methods
     void loadAvailableGases();
     void build();
-    void calculate();
+    void calculate(bool force = false);
     void calculateOtherVariables();
-    void updateGasConsumption();
+    void updateGasConsumption(bool force = false);
     int  nbOfSteps();
 
     // Action methods

@@ -15,7 +15,6 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
       leftPanelSplitter(nullptr),
       topWidgetsSplitter(nullptr),
       verticalSplitter(nullptr),
-      m_tableDirty(false),
       m_isUpdating(false),
       m_gasesColumnsInitialized(false),  // Make sure to initialize
       m_totalGasesWidth(0)              // Make sure to initialize
@@ -48,29 +47,13 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
     
     // Set up UI
     setupUI();
-    
-    QElapsedTimer timer;
 
     // Initial refresh of widgets
-    timer.start();
     refreshDiveSummary();
-    qDebug() << "refreshDiveSummary() took" << timer.elapsed() << "ms";
-
-    timer.restart();
     refreshStopStepsTable();
-    qDebug() << "Initial refreshStopStepsTable() took" << timer.elapsed() << "ms";
-    
-    timer.restart();
     refreshSetpointsTable();
-    qDebug() << "Initial refreshSetpointsTable() took" << timer.elapsed() << "ms";
-    
-    timer.restart();
     refreshDivePlanTable();
-    qDebug() << "Initial refreshDivePlanTable() took" << timer.elapsed() << "ms";
-    
-    timer.restart();
     refreshGasesTable();
-    qDebug() << "Initial refreshGasesTable() took" << timer.elapsed() << "ms";
     
     // Update setpoint visibility based on current mode
     updateSetpointVisibility();
@@ -95,6 +78,10 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
 DivePlanWindow::~DivePlanWindow() {}
 
 void DivePlanWindow::setupUI() {
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Create central widget and main layout
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
@@ -112,7 +99,6 @@ void DivePlanWindow::setupUI() {
     
     // Create left panel splitter for stop steps and setpoints tables
     leftPanelSplitter = new QSplitter(Qt::Vertical, leftPanelWidget);
-    qDebug() << "leftPanelSplitter created:" << (leftPanelSplitter != nullptr);
     
     // Create stop steps section
     QWidget *stopStepsWidget = new QWidget(leftPanelSplitter);
@@ -181,7 +167,6 @@ void DivePlanWindow::setupUI() {
     
     // Create a splitter for the visualization area and dive plan table
     verticalSplitter = new QSplitter(Qt::Vertical, rightPanelWidget);
-    qDebug() << "verticalSplitter created:" << (verticalSplitter != nullptr);
     
     // Top visualization area
     QWidget *visualizationWidget = new QWidget(verticalSplitter);
@@ -189,7 +174,6 @@ void DivePlanWindow::setupUI() {
     
     // Top widgets section - split into two equal widgets
     topWidgetsSplitter = new QSplitter(Qt::Horizontal, visualizationWidget);
-    qDebug() << "topWidgetsSplitter created:" << (topWidgetsSplitter != nullptr);
     
     // First top widget (Dive Summary)
     topWidget1 = new QWidget(topWidgetsSplitter);
@@ -197,7 +181,6 @@ void DivePlanWindow::setupUI() {
     topWidget1->setStyleSheet("border: 1px solid #ccc;"); // Removed background color
     QVBoxLayout *topWidget1Layout = new QVBoxLayout(topWidget1);
     topWidget1Layout->setContentsMargins(5, 5, 5, 5);
-
     
     // Second top widget (GasConsumption)
     QWidget *topWidget2 = new QWidget(topWidgetsSplitter);
@@ -262,6 +245,9 @@ void DivePlanWindow::setupUI() {
 
     // Force an immediate layout pass
     QApplication::processEvents();
+
+    // Monitor performance
+    printf("DivePlanWindow::setupUI() took %lld ms\n", timer.elapsed());
 }
 
 void DivePlanWindow::rebuildDivePlan() {
@@ -273,20 +259,12 @@ void DivePlanWindow::rebuildDivePlan() {
     
     isRebuilding = true;
     
-    QElapsedTimer timer;
-    timer.start();
-    
     // PERFORM THE REBUILD
-    m_divePlan->build();
-    qDebug() << "build() took" << timer.elapsed() << "ms";
-    
+    m_divePlan->build();    
     
     // Refresh the stopstep table
-    timer.restart();
     refreshStopStepsTable();
-    qDebug() << "refreshStopStepsTable() took" << timer.elapsed() << "ms";
 
-    m_tableDirty = true;
     isRebuilding = false;
 }
 
@@ -298,34 +276,19 @@ void DivePlanWindow::refreshDivePlan() {
     }
     
     isRefreshing = true;
-   
-    QElapsedTimer timer;
-    timer.start();
     
-    // Log the execution times for optimization purposes
-    m_divePlan->calculate();
-    qDebug() << "calculate() took" << timer.elapsed() << "ms";
-    
-    timer.restart();
+    // Update the dive plan
+    m_divePlan->calculate(); // checks if dirty and calculates if so
     m_divePlan->updateGasConsumption();
-    qDebug() << "updateGasConsumption() took" << timer.elapsed() << "ms";
     refreshGasesTable();
     
-    timer.restart();
     // Check if the dive plan table is visible by checking its height
     bool isTableVisible = divePlanTable && divePlanTable->isVisible() && divePlanTable->height() > 0;
     
     if (isTableVisible) {
         refreshDivePlanTable();
-        qDebug() << "refreshDivePlanTable() took" << timer.elapsed() << "ms";
-    } else {
-        // Mark the table as dirty so it will be refreshed when made visible
-        m_tableDirty = true;
-        qDebug() << "DivePlanTable refresh deferred (not visible)";
-    }
+    } 
 
-    // Refresh the summary widget
-    refreshDiveSummary();
     isRefreshing = false;
 }
 
@@ -339,9 +302,6 @@ QString DivePlanWindow::getStepModeString(stepMode mode) {
 
 // Action methods
 void DivePlanWindow::ccModeActivated() {
-    QElapsedTimer timer;
-    timer.start();
-    
     // Set CC mode
     m_divePlan->m_mode = diveMode::CC;
     
@@ -352,11 +312,10 @@ void DivePlanWindow::ccModeActivated() {
     updateSetpointVisibility();
     
     // Rebuild and refresh the dive plan
+    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     rebuildDivePlan();
     refreshDivePlan();
-    
-    qDebug() << "CC Mode switch took" << timer.elapsed() << "ms";
-    
+        
     // Allow UI to process events after the edit
     QApplication::processEvents();
 }
@@ -680,37 +639,17 @@ void DivePlanWindow::handleSplitterMovement(QSplitter* splitter, int /*index*/) 
         }
         else if (config->name == "verticalSplitter") {
             if (i == 1) { // Dive plan section
-                bool wasHidden = false;
-                if (divePlanTable) {
-                    wasHidden = !divePlanTable->isVisible();
-                    divePlanTable->setVisible(!isCollapsed);
-                }
                 if (infoLabel) {
                     infoLabel->setVisible(!isCollapsed);
                 }
                 
                 // Handle refresh logic for dive plan
                 if (!isCollapsed) {
-                    if (m_tableDirty || wasHidden) {
-                        // Refresh immediately if becoming visible
-                        if (wasHidden) {
-                            refreshDivePlanTable();
-                            QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);
-                        } else {
-                            QTimer::singleShot(0, this, &DivePlanWindow::refreshDivePlanTable);
-                        }
-                        m_tableDirty = false;
-                    }
-                    
-                    // Always trigger a resize when making visible
-                    QTimer::singleShot(10, this, &DivePlanWindow::resizeDivePlanTable);
-                    
-                    // Also try to resize immediately
-                    resizeDivePlanTable();
+                    refreshDivePlanTable();
+                    QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);
                 }
-                if (isCollapsed) {
-                    m_tableDirty = true;
-                }
+                    
+                resizeDivePlanTable();
             }
         }
     }
@@ -781,12 +720,9 @@ void DivePlanWindow::updateWidgetVisibility(QSplitter* splitter, const QList<int
                 }
                 
                 // Handle refresh logic for previously hidden table
-                if (showDivePlan && m_tableDirty) {
-                    QTimer::singleShot(0, this, &DivePlanWindow::refreshDivePlanTable);
-                    m_tableDirty = false;
-                }
-                if (!showDivePlan) {
-                    m_tableDirty = true;
+                if (showDivePlan) {
+                    refreshDivePlanTable();
+                    QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);
                 }
             }
         }
@@ -837,10 +773,6 @@ void DivePlanWindow::updateSplitterVisibility(QSplitter* splitter) {
                 if (i == 1) { // Dive plan section
                     if (divePlanTable) {
                         divePlanTable->setVisible(!isEffectivelyHidden);
-                        // Mark table dirty if hidden
-                        if (isEffectivelyHidden) {
-                            m_tableDirty = true;
-                        }
                     }
                     if (infoLabel) {
                         infoLabel->setVisible(!isEffectivelyHidden);

@@ -14,8 +14,6 @@ void DivePlanWindow::setpointCellChanged(int row, int column) {
         double value = item->text().toDouble(&ok);
         
         if (ok) {
-            QElapsedTimer timer;
-            timer.start();
             
             // Validate the row index is within bounds
             if (row < 0 || row >= static_cast<int>(m_divePlan->m_setPoints.nbOfSetPoints())) {
@@ -41,10 +39,9 @@ void DivePlanWindow::setpointCellChanged(int row, int column) {
             // Save setpoints to file
             m_divePlan->m_setPoints.saveSetPointsToFile();
             
-            qDebug() << "editSetPoint() took" << timer.elapsed() << "ms";
-
             // Unlike stop steps, we don't need to rebuild for setpoint changes
             // We just need to refresh the dive plan to recalculate with new setpoints
+            m_divePlan->m_divePlanDirty = true;  // Mark as dirty
             refreshDivePlan();
             
             // Since sorting might have changed positions, refresh the table
@@ -61,9 +58,6 @@ void DivePlanWindow::addSetpoint() {
     if (isUpdating) return;
     isUpdating = true;
     
-    QElapsedTimer timer;
-    timer.start();
-    
     // Get the last setpoint as a reference
     double lastDepth = 0.0;
     double lastSetpoint = 0.7; // Default setpoint
@@ -78,15 +72,12 @@ void DivePlanWindow::addSetpoint() {
     
     // Save setpoints to file
     m_divePlan->m_setPoints.saveSetPointsToFile();
-    
-    qDebug() << "addSetPoint() took" << timer.elapsed() << "ms";
-    
-    timer.restart();
+
     // Refresh the setpoint table
     refreshSetpointsTable();
-    qDebug() << "refreshSetpointsTable() took" << timer.elapsed() << "ms";
 
     // Refresh the dive plan WITHOUT rebuilding
+    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     refreshDivePlan();
 
     // Allow UI to process events after the edit
@@ -103,8 +94,6 @@ void DivePlanWindow::deleteSetpoint(int row) {
     
     // Ensure we maintain at least one setpoint
     if (m_divePlan->m_setPoints.nbOfSetPoints() > 1) {
-        QElapsedTimer timer;
-        timer.start();
         
         // Remove the specified setpoint
         m_divePlan->m_setPoints.removeSetPoint(row);
@@ -112,14 +101,11 @@ void DivePlanWindow::deleteSetpoint(int row) {
         // Save setpoints to file
         m_divePlan->m_setPoints.saveSetPointsToFile();
         
-        qDebug() << "removeSetPoint() took" << timer.elapsed() << "ms";
-        
-        timer.restart();
         // Refresh the setpoint table
         refreshSetpointsTable();
-        qDebug() << "refreshSetpointsTable() took" << timer.elapsed() << "ms";
 
         // Refresh the dive plan
+        m_divePlan->m_divePlanDirty = true;  // Mark as dirty
         refreshDivePlan();
 
         // Allow UI to process events after the edit
@@ -146,6 +132,19 @@ void DivePlanWindow::setupSetpointsTable() {
 }
 
 void DivePlanWindow::refreshSetpointsTable() {
+    if (!m_divePlan->m_UIsetpointsDirty) return;
+
+    if (m_isUpdating) {
+        qDebug() << "Skipping refreshSetpointsTable() - already updating";
+        return; // Prevent recursive calls
+    }
+
+    m_isUpdating = true;
+
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(setpointsTable, this, &DivePlanWindow::setpointCellChanged, [this]() {
         // Set number of rows
@@ -169,6 +168,11 @@ void DivePlanWindow::refreshSetpointsTable() {
             }
         }
     });
+
+    // Monitor performance
+    printf("DivePlanWindow::refreshSetpointsTable() took %lld ms\n", timer.elapsed());
+
+    m_isUpdating = false;
 }
 
 }// namespace DiveComputer

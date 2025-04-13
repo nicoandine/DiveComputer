@@ -29,6 +29,7 @@ void DivePlanWindow::stopStepCellChanged(int row, int column) {
             m_divePlan->m_stopSteps.editStopStep(row, depth, time);
 
             // Rebuild and refreshthe dive plan
+            m_divePlan->m_divePlanDirty = true;  // Mark as dirty
             rebuildDivePlan();
             refreshDivePlan();
 
@@ -44,7 +45,6 @@ void DivePlanWindow::addStopStep() {
         return;
     }
     
-    qDebug() << "Adding stop step - START";
     m_isUpdating = true;
 
     // Get the deepest stop step as a reference
@@ -55,14 +55,10 @@ void DivePlanWindow::addStopStep() {
         lastDepth = m_divePlan->m_stopSteps.m_stopSteps[0].m_depth;
         lastTime = m_divePlan->m_stopSteps.m_stopSteps[0].m_time;
     }
-    
-    qDebug() << "Before adding - Stop steps count:" << m_divePlan->m_stopSteps.nbOfStopSteps();
-    
+        
     // Add a new stop step with similar values
     m_divePlan->m_stopSteps.addStopStep(lastDepth, lastTime);
-    
-    qDebug() << "After adding - Stop steps count:" << m_divePlan->m_stopSteps.nbOfStopSteps();
-    
+        
     // Force immediate update of the stop steps table
     stopStepsTable->setUpdatesEnabled(false);
     refreshStopStepsTable();
@@ -72,19 +68,11 @@ void DivePlanWindow::addStopStep() {
     QApplication::processEvents();
     
     // Rebuild the dive plan separately
+    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
     rebuildDivePlan();
     refreshDivePlan();
 
-    qDebug() << "Adding stop step - END";
     m_isUpdating = false;
-    
-    // As a fallback, schedule another refresh after a short delay
-    QTimer::singleShot(100, this, [this]() {
-        if (!m_isUpdating) {
-            refreshStopStepsTable();
-            stopStepsTable->repaint();
-        }
-    });
 }
 
 void DivePlanWindow::deleteStopStep(int row) {
@@ -93,17 +81,13 @@ void DivePlanWindow::deleteStopStep(int row) {
         return;
     }
     
-    qDebug() << "Deleting stop step" << row << "- START";
     m_isUpdating = true;
 
     // Ensure we maintain at least one stop step
     if (m_divePlan->m_stopSteps.nbOfStopSteps() > 1) {
-        qDebug() << "Before deleting - Stop steps count:" << m_divePlan->m_stopSteps.nbOfStopSteps();
         
         // Remove the specified stop step
         m_divePlan->m_stopSteps.removeStopStep(row);
-        
-        qDebug() << "After deleting - Stop steps count:" << m_divePlan->m_stopSteps.nbOfStopSteps();
         
         // Force immediate update of the stop steps table
         stopStepsTable->setUpdatesEnabled(false);
@@ -114,13 +98,14 @@ void DivePlanWindow::deleteStopStep(int row) {
         QApplication::processEvents();
         
         // Rebuild the dive plan separately
+        m_divePlan->m_divePlanDirty = true;  // Mark as dirty
         rebuildDivePlan();
         refreshDivePlan();
     }
 
-    qDebug() << "Deleting stop step - END";
     m_isUpdating = false;
     
+    /*
     // As a fallback, schedule another refresh after a short delay
     QTimer::singleShot(100, this, [this]() {
         if (!m_isUpdating) {
@@ -128,6 +113,7 @@ void DivePlanWindow::deleteStopStep(int row) {
             stopStepsTable->repaint();
         }
     });
+    */
 }
 
 void DivePlanWindow::setupStopStepsTable() {
@@ -150,13 +136,18 @@ void DivePlanWindow::setupStopStepsTable() {
 }
 
 void DivePlanWindow::refreshStopStepsTable() {
+    if (!m_divePlan->m_UIstopStepsDirty) return;
+    
     if (m_isUpdating) {
         qDebug() << "Skipping refreshStopStepsTable() - already updating";
         return; // Prevent recursive calls
     }
     
-    qDebug() << "Refreshing stop steps table - START - Count:" << m_divePlan->m_stopSteps.nbOfStopSteps();
     m_isUpdating = true;
+
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
 
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(stopStepsTable, this, &DivePlanWindow::stopStepCellChanged, [this]() {
@@ -181,7 +172,9 @@ void DivePlanWindow::refreshStopStepsTable() {
         }
     });
 
-    qDebug() << "Refreshing stop steps table - END";
+    // Monitor performance
+    printf("DivePlanWindow::refreshStopStepsTable() took %lld ms\n", timer.elapsed());
+
     m_isUpdating = false;
 }
 

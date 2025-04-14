@@ -200,11 +200,8 @@ private:
 
     void setupSetpointsTable();
     void updateSetpointVisibility();
-
     void setupStopStepsTable();
-
     void setupSummaryWidget();
-
     void setupGasesTable();
     void updateGasTablePressures();
     void gasTableCellChanged(int row, int column);

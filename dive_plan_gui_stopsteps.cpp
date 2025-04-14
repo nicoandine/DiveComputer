@@ -93,13 +93,7 @@ void DivePlanWindow::stopStepCellChanged(int row, int column) {
             m_divePlan->m_stopSteps.editStopStep(row, depth, time);
 
             // Rebuild and refresh the dive plan
-            if (column == STOP_COL_DEPTH) {
-                rebuildDivePlan();
-            } else {
-                m_divePlan->calculateDivePlan();
-                m_divePlan->calculateGasConsumption();
-                m_divePlan->calculateDiveSummary();
-            }
+            rebuildDivePlan();
             refreshWindow();
         }
     }

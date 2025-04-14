@@ -37,8 +37,7 @@ public:
     
     // Safe table update with signal blocking
     template<typename T, typename Func>
-    static void safeUpdate(QTableWidget* table, T* instance, Func cellChangedHandler, 
-                          std::function<void()> updateFunc) {
+    static void safeUpdate(QTableWidget* table, T* instance, Func cellChangedHandler, std::function<void()> updateFunc) {
         if (!table || !instance || !updateFunc) return;
         
         // Disconnect cell change signals temporarily

@@ -6,6 +6,10 @@ namespace DiveComputer {
 
 
 void DivePlanWindow::setupDivePlanTable() {
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Set up column headers
     QStringList headers;
     headers << "Phase\n" << "Mode\n" << "Depth Range\n(m)" << "Time\n(min)" << "Run Time\n(min)"
@@ -68,27 +72,18 @@ void DivePlanWindow::setupDivePlanTable() {
 
     // Hide N2 % column
     divePlanTable->setColumnHidden(COL_N2_PERCENT, true);
+
+    // Monitor performance
+    printf("DivePlanWindow::setupDivePlanTable() took %lld ms\n", timer.elapsed());
+
+    // Update the dive plan
+    refreshDivePlanTable();
 }
 
 void DivePlanWindow::refreshDivePlanTable() {
-    if (!m_divePlan->m_UIdivePlanDirty){
-        printf("Diveplan table refresh - SKIPPED\n");
-        return;
-    }
-
-    if (m_isUpdating) {
-        qDebug() << "Skipping refreshDivePlanTable() - already updating";
-        return; // Prevent recursive calls
-    }
-
-    m_isUpdating = true;
-
     // Log performance
     QElapsedTimer timer;
     timer.start();
-
-    m_divePlan->calculate();
-    m_divePlan->updateGasConsumption();
 
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(divePlanTable, this, &DivePlanWindow::divePlanCellChanged, [this]() {
@@ -219,10 +214,11 @@ void DivePlanWindow::refreshDivePlanTable() {
     // Ensure N2 column remains hidden
     divePlanTable->setColumnHidden(COL_N2_PERCENT, true);
 
+    // Allow UI to process events after the edit
+    QApplication::processEvents();
+
     // Monitor performance
     printf("DivePlanWindow::refreshDivePlanTable() took %lld ms\n", timer.elapsed());
-
-    m_isUpdating = false;
 }
 
 void DivePlanWindow::resizeDivePlanTable() {
@@ -351,9 +347,11 @@ void DivePlanWindow::divePlanCellChanged(int row, int column) {
                                                              m_divePlan->m_stopSteps.m_stopSteps[i].m_depth, 
                                                              newTime);
                             
-                            // Rebuild everything
-                            m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-                            rebuildDivePlan();
+                            // Recalculate everything
+                            printf("I AM GOING THROUGH HERE\n");
+                            m_divePlan->calculateDivePlan();
+                            m_divePlan->calculateGasConsumption();
+                            m_divePlan->calculateDiveSummary();
                             refreshWindow();
                             
                             // Allow UI to process events

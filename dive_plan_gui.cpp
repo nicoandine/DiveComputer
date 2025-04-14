@@ -15,7 +15,6 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
       leftPanelSplitter(nullptr),
       topWidgetsSplitter(nullptr),
       verticalSplitter(nullptr),
-      m_isUpdating(false),
       m_gasesColumnsInitialized(false),  // Make sure to initialize
       m_totalGasesWidth(0)              // Make sure to initialize
 {
@@ -36,14 +35,11 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
     
     // Make sure the setpoints are sorted
     m_divePlan->m_setPoints.sortSetPoints();
-    m_divePlan->calculate();
-    
-    // Add a test shortcut for manual menu refresh (for debugging)
-    QAction* refreshMenuAction = new QAction(this);
-    refreshMenuAction->setShortcut(QKeySequence("F5"));
-    // Use a different approach to handle the action
-    refreshMenuAction->setProperty("activateWindow", true);
-    this->addAction(refreshMenuAction);
+
+    // Calculate the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
     
     // Set up UI
     setupUI();
@@ -180,11 +176,11 @@ void DivePlanWindow::setupUI() {
     topWidgetsSplitter = new QSplitter(Qt::Horizontal, visualizationWidget);
     
     // First top widget (Dive Summary)
-    topWidget1 = new QWidget(topWidgetsSplitter);
-    topWidget1->setMinimumHeight(50);
-    topWidget1->setStyleSheet("border: 1px solid #ccc;"); // Removed background color
-    QVBoxLayout *topWidget1Layout = new QVBoxLayout(topWidget1);
-    topWidget1Layout->setContentsMargins(5, 5, 5, 5);
+    summaryTable = new QWidget(topWidgetsSplitter);
+    summaryTable->setMinimumHeight(50);
+    summaryTable->setStyleSheet("border: 1px solid #ccc;"); // Removed background color
+    QVBoxLayout *summaryTableLayout = new QVBoxLayout(summaryTable);
+    summaryTableLayout->setContentsMargins(5, 5, 5, 5);
     
     // Second top widget (GasConsumption)
     QWidget *topWidget2 = new QWidget(topWidgetsSplitter);
@@ -200,7 +196,7 @@ void DivePlanWindow::setupUI() {
     topWidget2Layout->addWidget(gasesTable);
     
     // Add both top widgets to the splitter
-    topWidgetsSplitter->addWidget(topWidget1);
+    topWidgetsSplitter->addWidget(summaryTable);
     topWidgetsSplitter->addWidget(topWidget2);
     
     // Add top widgets splitter to visualization layout
@@ -255,21 +251,14 @@ void DivePlanWindow::setupUI() {
 }
 
 void DivePlanWindow::rebuildDivePlan() {
-    static bool isRebuilding = false;
-    if (isRebuilding) {
-        qDebug() << "Preventing recursive rebuildDivePlan call";
-        return;
-    }
-    
-    isRebuilding = true;
-    
     // PERFORM THE REBUILD
-    m_divePlan->build();    
+    m_divePlan->buildDivePlan(); 
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
     
-    // Refresh the stopstep table
-    refreshStopStepsTable();
-
-    isRebuilding = false;
+    // Refresh the total window
+    refreshWindow();
 }
 
 QString DivePlanWindow::getPhaseString(Phase phase) {
@@ -280,62 +269,8 @@ QString DivePlanWindow::getStepModeString(stepMode mode) {
     return QString::fromStdString(getStepModeIcon(mode));
 }
 
-// Action methods
-void DivePlanWindow::ccModeActivated() {
-    // Set CC mode
-    m_divePlan->m_mode = diveMode::CC;
-    
-    // Update the mode display
-    updateMenuState();
-    
-    // Show setpoints table if in CC mode
-    updateSetpointVisibility();
-    
-    // Rebuild and refresh the dive plan
-    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-    rebuildDivePlan();
-    refreshWindow();
-        
-    // Allow UI to process events after the edit
-    QApplication::processEvents();
-}
-
-void DivePlanWindow::setMaxTime() {
-    std::pair<double, double> result = m_divePlan->getMaxTimeAndTTS();
-    std::cout << "Max Time: " << result.first << " Max TTS: " << result.second << std::endl;
-
-    // find the first stop step
-    int firstStopIndex = 0;
-    for (int i = 1; i < m_divePlan->nbOfSteps(); i++) {
-        if (m_divePlan->m_diveProfile[i].m_phase == Phase::STOP) {
-            firstStopIndex = i;
-            break;
-        }
-    }
-    m_divePlan->m_diveProfile[firstStopIndex].m_time = result.first;
-    m_divePlan->calculate();
-    refreshWindow();
-}
-
-void DivePlanWindow::optimiseDecoGas() {
-    m_divePlan->optimiseDecoGas();
-    refreshWindow(); // includes refreshing the gas table
-}
-
-// Handles menu activation
-void DivePlanWindow::activate() {
-    // Just tell main window to handle menu and make this window active
-    if (m_mainWindow && !m_isUpdating) {
-        m_isUpdating = true;
-        m_mainWindow->activateWindowWithMenu(this);
-        m_isUpdating = false;
-    }
-}
-
 void DivePlanWindow::mouseReleaseEvent(QMouseEvent* event) {
     QMainWindow::mouseReleaseEvent(event);
-    
-    // When user clicks on this window, ensure it has the menu
     activate();
 }
 
@@ -622,7 +557,6 @@ void DivePlanWindow::handleSplitterMovement(QSplitter* splitter, int /*index*/) 
                     infoLabel->setVisible(!isCollapsed);
                 }
                 
-                refreshDivePlanTable();
                 QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);   
                 resizeDivePlanTable();
             }
@@ -694,7 +628,6 @@ void DivePlanWindow::updateWidgetVisibility(QSplitter* splitter, const QList<int
                     infoLabel->setVisible(showDivePlan);
                 }
                 
-                refreshDivePlanTable();
                 QTimer::singleShot(50, this, &DivePlanWindow::resizeDivePlanTable);
             }
         }

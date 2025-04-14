@@ -3,109 +3,11 @@
 
 namespace DiveComputer {
 
-void DivePlanWindow::stopStepCellChanged(int row, int column) {
-    // Only handle valid columns (depth and time)
-    if (column == STOP_COL_DEPTH || column == STOP_COL_TIME) {
-        // Get the current value from the table
-        QTableWidgetItem* item = stopStepsTable->item(row, column);
-        if (!item) return;
-        
-        bool ok;
-        double value = item->text().toDouble(&ok);
-        
-        if (ok) {
-            // Get current values
-            double depth = m_divePlan->m_stopSteps.m_stopSteps[row].m_depth;
-            double time = m_divePlan->m_stopSteps.m_stopSteps[row].m_time;
-            
-            // Update with new value
-            if (column == STOP_COL_DEPTH) {
-                depth = value;
-            } else { // STOP_COL_TIME
-                time = value;
-            }
-            
-            // Update the stop step
-            m_divePlan->m_stopSteps.editStopStep(row, depth, time);
-
-            // Rebuild and refreshthe dive plan
-            m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-            refreshWindow();
-
-            // Allow UI to process events after the edit
-            QApplication::processEvents();
-        }
-    }
-}
-
-void DivePlanWindow::addStopStep() {
-    if (m_isUpdating) {
-        qDebug() << "Skipping addStopStep() - already updating";
-        return;
-    }
-    
-    m_isUpdating = true;
-
-    // Get the deepest stop step as a reference
-    double lastDepth = 0.0;
-    double lastTime = 0.0;
-    
-    if (m_divePlan->m_stopSteps.nbOfStopSteps() > 0) {
-        lastDepth = m_divePlan->m_stopSteps.m_stopSteps[0].m_depth;
-        lastTime = m_divePlan->m_stopSteps.m_stopSteps[0].m_time;
-    }
-        
-    // Add a new stop step with similar values
-    m_divePlan->m_stopSteps.addStopStep(lastDepth, lastTime);
-        
-    // Force immediate update of the stop steps table
-    stopStepsTable->setUpdatesEnabled(false);
-    refreshStopStepsTable();
-    stopStepsTable->setUpdatesEnabled(true);
-    stopStepsTable->repaint();
-    
-    QApplication::processEvents();
-    
-    // Rebuild the dive plan separately
-    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-    rebuildDivePlan();
-    refreshWindow();
-
-    m_isUpdating = false;
-}
-
-void DivePlanWindow::deleteStopStep(int row) {
-    if (m_isUpdating) {
-        qDebug() << "Skipping deleteStopStep() - already updating";
-        return;
-    }
-    
-    m_isUpdating = true;
-
-    // Ensure we maintain at least one stop step
-    if (m_divePlan->m_stopSteps.nbOfStopSteps() > 1) {
-        
-        // Remove the specified stop step
-        m_divePlan->m_stopSteps.removeStopStep(row);
-        
-        // Force immediate update of the stop steps table
-        stopStepsTable->setUpdatesEnabled(false);
-        refreshStopStepsTable();
-        stopStepsTable->setUpdatesEnabled(true);
-        stopStepsTable->repaint();
-        
-        QApplication::processEvents();
-        
-        // Rebuild the dive plan separately
-        m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-        rebuildDivePlan();
-        refreshWindow();
-    }
-
-    m_isUpdating = false;
-}
-
 void DivePlanWindow::setupStopStepsTable() {
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Set up column headers
     QStringList headers;
     headers << "Depth\n(m)" << "Time\n(min)" << "";
@@ -122,21 +24,15 @@ void DivePlanWindow::setupStopStepsTable() {
     // Connect cell change signal
     connect(stopStepsTable, &QTableWidget::cellChanged, 
         this, &DivePlanWindow::stopStepCellChanged);
+
+    // Monitor performance
+    printf("DivePlanWindow::setupStopStepsTable() took %lld ms\n", timer.elapsed());
+
+    // Refresh the stop steps table
+    refreshStopStepsTable();
 }
 
 void DivePlanWindow::refreshStopStepsTable() {
-    if (!m_divePlan->m_UIstopStepsDirty){
-        printf("Stopstep table refresh - SKIPPED\n");
-        return;
-    }
-    
-    if (m_isUpdating) {
-        qDebug() << "Skipping refreshStopStepsTable() - already updating";
-        return; // Prevent recursive calls
-    }
-    
-    m_isUpdating = true;
-
     // Log performance
     QElapsedTimer timer;
     timer.start();
@@ -164,12 +60,72 @@ void DivePlanWindow::refreshStopStepsTable() {
         }
     });
 
+    // Allow UI to process events after the edit
+    QApplication::processEvents();
+
     // Monitor performance
     printf("DivePlanWindow::refreshStopStepsTable() took %lld ms\n", timer.elapsed());
-
-    m_isUpdating = false;
 }
 
+void DivePlanWindow::stopStepCellChanged(int row, int column) {
+    // Only handle valid columns (depth and time)
+    if (column == STOP_COL_DEPTH || column == STOP_COL_TIME) {
+        // Get the current value from the table
+        QTableWidgetItem* item = stopStepsTable->item(row, column);
+        if (!item) return;
+        
+        bool ok;
+        double value = item->text().toDouble(&ok);
+        
+        if (ok) {
+            // Get current values
+            double depth = m_divePlan->m_stopSteps.m_stopSteps[row].m_depth;
+            double time = m_divePlan->m_stopSteps.m_stopSteps[row].m_time;
+            
+            // Update with new value
+            if (column == STOP_COL_DEPTH) {
+                depth = value;
+            } else { // STOP_COL_TIME
+                time = value;
+            }
+            
+            // Update the stop step
+            m_divePlan->m_stopSteps.editStopStep(row, depth, time);
+
+            // Rebuild and refresh the dive plan
+            if (column == STOP_COL_DEPTH) {
+                rebuildDivePlan();
+            } else {
+                m_divePlan->calculateDivePlan();
+                m_divePlan->calculateGasConsumption();
+                m_divePlan->calculateDiveSummary();
+            }
+            refreshWindow();
+        }
+    }
+}
+
+void DivePlanWindow::addStopStep() {
+    // Add a new stop step with similar values
+    m_divePlan->m_stopSteps.addStopStep(0.0, 0.0);
+    
+    // Rebuild and refresh the dive plan
+    rebuildDivePlan();
+    refreshWindow();
+}
+
+void DivePlanWindow::deleteStopStep(int row) {
+    // Ensure we maintain at least one stop step
+    if (m_divePlan->m_stopSteps.nbOfStopSteps() > 1) {
+        
+        // Remove the specified stop step
+        m_divePlan->m_stopSteps.removeStopStep(row);
+        
+        // Rebuild and refresh the dive plan
+        rebuildDivePlan();
+        refreshWindow();
+    }
+}
 
 
 } // namespace DiveComputer

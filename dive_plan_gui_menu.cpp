@@ -4,20 +4,21 @@
 namespace DiveComputer {
 
 void DivePlanWindow::setupMenu() {
-    if (!m_divePlanningMenu) {
-        return;
-    }
-    
     // Clear any existing actions
     m_divePlanningMenu->clear();
     
+    // Create OC Mode action
+    m_ocModeAction = new QAction("OC Mode", this);
+    m_ocModeAction->setCheckable(true);
+    m_ocModeAction->setChecked(m_divePlan->m_mode == diveMode::OC);
+    connect(m_ocModeAction, &QAction::triggered, this, &DivePlanWindow::ocModeActivated);
+    m_divePlanningMenu->addAction(m_ocModeAction);
+
     // Create CC Mode action
     m_ccModeAction = new QAction("CC Mode", this);
     m_ccModeAction->setCheckable(true);
     m_ccModeAction->setChecked(m_divePlan->m_mode == diveMode::CC);
-
     connect(m_ccModeAction, &QAction::triggered, this, &DivePlanWindow::ccModeActivated);
-
     m_divePlanningMenu->addAction(m_ccModeAction);
     
     // Create Bailout action (only visible in CC mode)
@@ -25,22 +26,7 @@ void DivePlanWindow::setupMenu() {
     m_bailoutAction->setCheckable(true);
     m_bailoutAction->setChecked(m_divePlan->m_bailout);
     m_bailoutAction->setVisible(m_divePlan->m_mode == diveMode::CC);
-    connect(m_bailoutAction, &QAction::triggered, [this]() {
-        QElapsedTimer timer;
-        timer.start();
-        
-        // Toggle bailout mode
-        m_divePlan->m_bailout = m_bailoutAction->isChecked();
-        
-        // Update the display
-        rebuildDivePlan();
-        refreshWindow();
-        
-        qDebug() << "Bailout toggle took" << timer.elapsed() << "ms";
-        
-        // Allow UI to process events after the edit
-        QApplication::processEvents();
-    });
+    connect(m_bailoutAction, &QAction::triggered, this, &DivePlanWindow::bailoutActionTriggered);
     m_divePlanningMenu->addAction(m_bailoutAction);
     
     // Create SP Boosted action (only visible in CC mode)
@@ -48,61 +34,42 @@ void DivePlanWindow::setupMenu() {
     m_gfBoostedAction->setCheckable(true);
     m_gfBoostedAction->setChecked(m_divePlan->m_boosted);
     m_gfBoostedAction->setVisible(m_divePlan->m_mode == diveMode::CC);
-    connect(m_gfBoostedAction, &QAction::triggered, [this]() {
-        QElapsedTimer timer;
-        timer.start();
-        
-        // Toggle SP Boosted mode
-        m_divePlan->m_boosted = m_gfBoostedAction->isChecked();
-        refreshWindow();
-        qDebug() << "SP Boosted toggle took" << timer.elapsed() << "ms";
-        
-        // Allow UI to process events after the edit
-        QApplication::processEvents();
-    });
+    connect(m_gfBoostedAction, &QAction::triggered, this, &DivePlanWindow::gfBoostedActionTriggered);
     m_divePlanningMenu->addAction(m_gfBoostedAction);
     
-    // Create OC Mode action
-    m_ocModeAction = new QAction("OC Mode", this);
-    m_ocModeAction->setCheckable(true);
-    m_ocModeAction->setChecked(m_divePlan->m_mode == diveMode::OC);
-    connect(m_ocModeAction, &QAction::triggered, [this]() {
-        QElapsedTimer timer;
-        timer.start();
+    // Add additional actions
+    // m_divePlanningMenu->addSeparator();
         
-        // Set OC mode
-        m_divePlan->m_mode = diveMode::OC;
-        
-        // Update the mode display
-        updateMenuState();
-        
-        // Hide setpoints table if in OC mode
-        updateSetpointVisibility();
-        
-        // Rebuild and refresh the dive plan
-        rebuildDivePlan();
-        refreshWindow();
-        
-        qDebug() << "OC Mode switch took" << timer.elapsed() << "ms";
-        
-        // Allow UI to process events after the edit
-        QApplication::processEvents();
-    });
-    m_divePlanningMenu->addAction(m_ocModeAction);
-    
-    m_divePlanningMenu->addSeparator();
-    
-    // Remove "Define mission" action as it's now handled in the summary widget
-    
     // Max time action
-    QAction* maxTimeAction = new QAction("Max time", this);
-    connect(maxTimeAction, &QAction::triggered, this, &DivePlanWindow::setMaxTime);
-    m_divePlanningMenu->addAction(maxTimeAction);
+    m_maxTimeAction = new QAction("Max time", this);
+    m_maxTimeAction->setVisible(m_divePlan->m_mode == diveMode::OC);
+    connect(m_maxTimeAction, &QAction::triggered, this, &DivePlanWindow::setMaxTime);
+    m_divePlanningMenu->addAction(m_maxTimeAction);
     
     // Optimise a deco gas action
-    QAction* optimiseDecoGasAction = new QAction("Optimise a deco gas", this);
-    connect(optimiseDecoGasAction, &QAction::triggered, this, &DivePlanWindow::optimiseDecoGas);
-    m_divePlanningMenu->addAction(optimiseDecoGasAction);
+    m_optimiseDecoGasAction = new QAction("Optimise a deco gas", this);
+    m_optimiseDecoGasAction->setVisible(m_divePlan->m_mode == diveMode::OC);
+    connect(m_optimiseDecoGasAction, &QAction::triggered, this, &DivePlanWindow::optimiseDecoGas);
+    m_divePlanningMenu->addAction(m_optimiseDecoGasAction);
+}
+
+void DivePlanWindow::setDivePlanningMenu(QMenu* menu) {
+    // Store menu reference
+    m_divePlanningMenu = menu;
+    
+    // Setup menu content if we have a valid menu
+    if (m_divePlanningMenu) {
+        // Clear existing actions
+        m_divePlanningMenu->clear();
+        
+        // Set up the menu with action items
+        setupMenu();
+        updateMenuState();
+    }
+}
+
+void DivePlanWindow::activate() {
+    m_mainWindow->activateWindowWithMenu(this);
 }
 
 void DivePlanWindow::updateMenuState() {
@@ -129,39 +96,86 @@ void DivePlanWindow::updateMenuState() {
     }
 }
 
-void DivePlanWindow::diveModeChanged(int index) {
-    // Update dive plan mode
-    diveMode newMode = static_cast<diveMode>(index);
-    m_divePlan->m_mode = newMode;
+// Menu mode actions
+void DivePlanWindow::ccModeActivated() {
+    // Set CC mode
+    m_divePlan->m_mode = diveMode::CC;
     
-    // Update menu state
+    // Update the mode display
     updateMenuState();
     
-    // Update setpoint table visibility
+    // Show setpoints table if in CC mode
     updateSetpointVisibility();
-
-    // Rebuild the dive plan
-    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-    rebuildDivePlan();
-    refreshWindow();
     
-    // Allow UI to process events after the edit
-    QApplication::processEvents();
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
+    refreshWindow();
 }
 
-void DivePlanWindow::setDivePlanningMenu(QMenu* menu) {
-    // Store menu reference
-    m_divePlanningMenu = menu;
+void DivePlanWindow::ocModeActivated() {
+    // Set OC mode
+    m_divePlan->m_mode = diveMode::OC;
     
-    // Setup menu content if we have a valid menu
-    if (m_divePlanningMenu) {
-        // Clear existing actions
-        m_divePlanningMenu->clear();
+    // Update the mode display
+    updateMenuState();
+    
+    // Show setpoints table if in CC mode
+    updateSetpointVisibility();
+    
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
+    refreshWindow();
+}
+
+void DivePlanWindow::bailoutActionTriggered() {
+    // Toggle bailout mode
+    m_divePlan->m_bailout = m_bailoutAction->isChecked();
         
-        // Set up the menu with action items
-        setupMenu();
-        updateMenuState();
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
+    refreshWindow();
+}
+
+void DivePlanWindow::gfBoostedActionTriggered() {
+    // Toggle SP Boosted mode
+    m_divePlan->m_boosted = m_gfBoostedAction->isChecked();
+
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
+    refreshWindow();
+}
+
+void DivePlanWindow::setMaxTime() {
+    std::pair<double, double> result = m_divePlan->getMaxTimeAndTTS();
+    std::cout << "Max Time: " << result.first << " Max TTS: " << result.second << std::endl;
+
+    // find the first stop step
+    int firstStopIndex = 0;
+    for (int i = 1; i < m_divePlan->nbOfSteps(); i++) {
+        if (m_divePlan->m_diveProfile[i].m_phase == Phase::STOP) {
+            firstStopIndex = i;
+            break;
+        }
     }
+    m_divePlan->m_diveProfile[firstStopIndex].m_time = result.first;
+
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
+    refreshWindow();
+}
+
+void DivePlanWindow::optimiseDecoGas() { // PLACEHOLDER
+    m_divePlan->optimiseDecoGas();
 }
 
 } // namespace DiveComputer

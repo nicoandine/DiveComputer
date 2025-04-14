@@ -43,34 +43,36 @@ public:
     StopSteps m_stopSteps;
     diveMode  m_mode;
 
+    // Dive parameters
     bool m_bailout;
     int  m_diveNumber;
     bool m_boosted;
     SetPoints m_setPoints;
     double m_mission = 0.0;
 
+    // Summary variables
+    double m_tts = 0;
+    double m_ttsDelta = 0;
+    double m_ap = 0;
+    std::pair<double, double> m_maxResult;
+    double m_tp = 0;
+    double m_turnTts = 0;
+
+    // Dive variables
     std::vector<CompartmentPP> m_initialPressure;
     std::vector<DiveStep> m_diveProfile;
     std::vector<DiveStep> m_timeProfile;
     std::vector<GasAvailable> m_gasAvailable;
 
-    // dirty flags
-    bool m_divePlanDirty = true;  // Start as true to ensure initial calculation
-    bool m_summaryDirty = true;
-    bool m_gasConsumptionDirty = true;  // Start as true to ensure initial calculation
-
-    // UI dirty flags
-    bool m_UIdivePlanDirty = true;
-    bool m_UIstopStepsDirty = true;
-    bool m_UIsetpointsDirty = true;
-    bool m_UIgasesDirty = true;
-
     // Core methods
     void loadAvailableGases();
-    void build();
-    void calculate(bool force = false);
-    void calculateOtherVariables();
-    void updateGasConsumption(bool force = false);
+    void buildDivePlan();
+    void calculateDivePlan(bool printLog = true);
+    void calculateDiveSummary(bool printLog = true);
+    void calculateGasConsumption(bool printLog = true);
+    void calculateOtherVariables(double GF, bool printLog = true);
+    void calculateTimeProfile(bool printLog = true);
+
     int  nbOfSteps();
 
     // Action methods
@@ -88,6 +90,7 @@ public:
     void printGF();
     void printO2Exposure();
     void printSummary();
+
 private:
     double m_firstDecoDepth;
 
@@ -122,7 +125,6 @@ private:
     void updateGFSurface();
     void updateRunTimes();
     void updateVariables(double GF);
-    void updateTimeProfile();
 };
 
 } // namespace DiveComputer

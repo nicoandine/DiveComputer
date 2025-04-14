@@ -3,6 +3,70 @@
 
 namespace DiveComputer {
 
+void DivePlanWindow::setupSetpointsTable() {
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+    
+    // Set up column headers
+    QStringList headers;
+    headers << "Depth\n(m)" << "Setpoint\n(bar)" << "";
+    
+    // Configure table
+    TableHelper::configureTable(setpointsTable, QAbstractItemView::SelectItems);
+    TableHelper::setHeaders(setpointsTable, headers);
+    
+    // Set column widths
+    setpointsTable->setColumnWidth(SP_COL_DEPTH, 60);
+    setpointsTable->setColumnWidth(SP_COL_SETPOINT, 60);
+    setpointsTable->setColumnWidth(SP_COL_DELETE, 45);
+    
+    // Connect cell change signal
+    connect(setpointsTable, &QTableWidget::cellChanged, this, &DivePlanWindow::setpointCellChanged);
+
+    // Monitor performance
+    printf("DivePlanWindow::setupSetpointsTable() took %lld ms\n", timer.elapsed());
+
+    // Refresh the setpoint table
+    refreshSetpointsTable();
+}
+
+void DivePlanWindow::refreshSetpointsTable() {
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
+    // Use the TableHelper for safe update
+    TableHelper::safeUpdate(setpointsTable, this, &DivePlanWindow::setpointCellChanged, [this]() {
+        // Set number of rows
+        setpointsTable->setRowCount(m_divePlan->m_setPoints.nbOfSetPoints());
+        
+        // Add setpoints to table
+        for (int i = 0; i < (int) m_divePlan->m_setPoints.nbOfSetPoints(); ++i) {
+            // Depth item
+            setpointsTable->setItem(i, SP_COL_DEPTH, 
+                TableHelper::createNumericCell(m_divePlan->m_setPoints.m_depths[i], 1, true));
+            
+            // Setpoint item
+            setpointsTable->setItem(i, SP_COL_SETPOINT, 
+                TableHelper::createNumericCell(m_divePlan->m_setPoints.m_setPoints[i], 2, true));
+            
+            // Delete button (except for the last row if there's only one)
+            if (m_divePlan->m_setPoints.nbOfSetPoints() > 1 || i < (int) m_divePlan->m_setPoints.nbOfSetPoints() - 1) {
+                setpointsTable->setCellWidget(i, SP_COL_DELETE, createDeleteButtonWidget([this, i]() {
+                    deleteSetpoint(i);
+                }).release());
+            }
+        }
+    });
+
+    // Allow UI to process events after the edit
+    QApplication::processEvents();
+
+    // Monitor performance
+    printf("DivePlanWindow::refreshSetpointsTable() took %lld ms\n", timer.elapsed());
+}
+
 void DivePlanWindow::setpointCellChanged(int row, int column) {
     // Only handle valid columns (depth and setpoint)
     if (column == SP_COL_DEPTH || column == SP_COL_SETPOINT) {
@@ -39,13 +103,11 @@ void DivePlanWindow::setpointCellChanged(int row, int column) {
             // Save setpoints to file
             m_divePlan->m_setPoints.saveSetPointsToFile();
             
-            // Unlike stop steps, we don't need to rebuild for setpoint changes
-            // We just need to refresh the dive plan to recalculate with new setpoints
-            m_divePlan->m_divePlanDirty = true;  // Mark as dirty
+            // We just need to recalculate the dive plan
+            m_divePlan->calculateDivePlan();
+            m_divePlan->calculateGasConsumption();
+            m_divePlan->calculateDiveSummary();
             refreshWindow();
-            
-            // Since sorting might have changed positions, refresh the table
-            refreshSetpointsTable();
 
             // Allow UI to process events after the edit
             QApplication::processEvents();
@@ -54,10 +116,6 @@ void DivePlanWindow::setpointCellChanged(int row, int column) {
 }
 
 void DivePlanWindow::addSetpoint() {
-    static bool isUpdating = false;
-    if (isUpdating) return;
-    isUpdating = true;
-    
     // Get the last setpoint as a reference
     double lastDepth = 0.0;
     double lastSetpoint = 0.7; // Default setpoint
@@ -73,17 +131,14 @@ void DivePlanWindow::addSetpoint() {
     // Save setpoints to file
     m_divePlan->m_setPoints.saveSetPointsToFile();
 
-    // Refresh the setpoint table
-    refreshSetpointsTable();
-
-    // Refresh the dive plan WITHOUT rebuilding
-    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
     refreshWindow();
 
     // Allow UI to process events after the edit
     QApplication::processEvents();
-    
-    isUpdating = false;
 }
 
 void DivePlanWindow::deleteSetpoint(int row) {
@@ -100,12 +155,11 @@ void DivePlanWindow::deleteSetpoint(int row) {
         
         // Save setpoints to file
         m_divePlan->m_setPoints.saveSetPointsToFile();
-        
-        // Refresh the setpoint table
-        refreshSetpointsTable();
 
         // Refresh the dive plan
-        m_divePlan->m_divePlanDirty = true;  // Mark as dirty
+        m_divePlan->calculateDivePlan();
+        m_divePlan->calculateGasConsumption();
+        m_divePlan->calculateDiveSummary();
         refreshWindow();
 
         // Allow UI to process events after the edit
@@ -113,69 +167,5 @@ void DivePlanWindow::deleteSetpoint(int row) {
     }
 }
 
-void DivePlanWindow::setupSetpointsTable() {
-    // Set up column headers
-    QStringList headers;
-    headers << "Depth\n(m)" << "Setpoint\n(bar)" << "";
-    
-    // Configure table
-    TableHelper::configureTable(setpointsTable, QAbstractItemView::SelectItems);
-    TableHelper::setHeaders(setpointsTable, headers);
-    
-    // Set column widths
-    setpointsTable->setColumnWidth(SP_COL_DEPTH, 60);
-    setpointsTable->setColumnWidth(SP_COL_SETPOINT, 60);
-    setpointsTable->setColumnWidth(SP_COL_DELETE, 45);
-    
-    // Connect cell change signal
-    connect(setpointsTable, &QTableWidget::cellChanged, this, &DivePlanWindow::setpointCellChanged);
-}
-
-void DivePlanWindow::refreshSetpointsTable() {
-    if (!m_divePlan->m_UIsetpointsDirty){
-        printf("Setpoint table refresh - SKIPPED\n");    
-        return;
-    }
-
-    if (m_isUpdating) {
-        qDebug() << "Skipping refreshSetpointsTable() - already updating";
-        return; // Prevent recursive calls
-    }
-
-    m_isUpdating = true;
-
-    // Log performance
-    QElapsedTimer timer;
-    timer.start();
-
-    // Use the TableHelper for safe update
-    TableHelper::safeUpdate(setpointsTable, this, &DivePlanWindow::setpointCellChanged, [this]() {
-        // Set number of rows
-        setpointsTable->setRowCount(m_divePlan->m_setPoints.nbOfSetPoints());
-        
-        // Add setpoints to table
-        for (int i = 0; i < (int) m_divePlan->m_setPoints.nbOfSetPoints(); ++i) {
-            // Depth item
-            setpointsTable->setItem(i, SP_COL_DEPTH, 
-                TableHelper::createNumericCell(m_divePlan->m_setPoints.m_depths[i], 1, true));
-            
-            // Setpoint item
-            setpointsTable->setItem(i, SP_COL_SETPOINT, 
-                TableHelper::createNumericCell(m_divePlan->m_setPoints.m_setPoints[i], 2, true));
-            
-            // Delete button (except for the last row if there's only one)
-            if (m_divePlan->m_setPoints.nbOfSetPoints() > 1 || i < (int) m_divePlan->m_setPoints.nbOfSetPoints() - 1) {
-                setpointsTable->setCellWidget(i, SP_COL_DELETE, createDeleteButtonWidget([this, i]() {
-                    deleteSetpoint(i);
-                }).release());
-            }
-        }
-    });
-
-    // Monitor performance
-    printf("DivePlanWindow::refreshSetpointsTable() took %lld ms\n", timer.elapsed());
-
-    m_isUpdating = false;
-}
 
 }// namespace DiveComputer

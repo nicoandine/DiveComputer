@@ -17,13 +17,7 @@ DivePlan::DivePlan(double depth, double time, diveMode mode, int diveNumber, std
     loadAvailableGases();
 
     // Build the dive plan
-    build();
-
-    // Calculate the dive plan
-    calculate();
-
-    // Update gas consumption
-    updateGasConsumption();
+    buildDivePlan();
 }
 
 // Core methods
@@ -44,12 +38,10 @@ void DivePlan::loadAvailableGases() {
     }
 }
 
-void DivePlan::build(){
+void DivePlan::buildDivePlan(){
     // Log performance
     QElapsedTimer timer;
     timer.start();
-
-    printf("DivePlan::build() - START\n");
 
     clear();
 
@@ -101,112 +93,157 @@ void DivePlan::build(){
     // Initialise the ppActual for Step 0
     m_diveProfile[0].m_ppActual = m_initialPressure;
 
-    // Set dirty flag as the profile has been rebuilt
-    m_divePlanDirty = true;
-    m_gasConsumptionDirty = true;
-    m_summaryDirty = true;
-
     // Monitor performance
     printf("DivePlan::build() took %lld ms\n", timer.elapsed());
-    printf("DivePlan::build() - END\n\n");
 }
 
-void DivePlan::calculate(bool force) {
-    // Skip calculation if not dirty and not forced
-    if (!force && !m_divePlanDirty) {
-        printf("DivePlan::calculate() - SKIPPED\n");
-        return;
+void DivePlan::calculateDivePlan(bool printLog) {
+    if (m_diveProfile.empty()) return;
+
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+    if (printLog) {
+        printf("\nDivePlan::calculate() - START\n");
     }
 
-    ErrorHandler::tryOperation([this]() {
-        // Guard against inconsistent state
-        if (m_diveProfile.empty()) {
-            throw std::runtime_error("Cannot calculate with empty dive profile");
-        }
+    m_firstDecoDepth = 0;
 
-        // Log performance
-        QElapsedTimer timer;
-        timer.start();
-        printf("DivePlan::calculate() - START\n");
+    // First pass at the deco plan
+    updatePpAmb();
+    clearDecoSteps();
+    updateStepsPhaseFromFirstDeco();
+    applyGases();
+    applyGF();
+    calculatePPInertGas();
+    calculatePPInertGasMax();
 
-        m_firstDecoDepth = 0;
+    // Returns the first deco stop, required for applying the GF
+    setFirstDecoDepth();
 
-        // Update pAmb
-        updatePpAmb();
+    // Update phase from first deco
+    // Re-apply gases after the first deco is found as the maxPPo2 will have changed for deco steps
+    // Re-calculate ppInertGas for all steps after re-applying the gas
+    // Apply the gradient factor to each step based on first deco stop determined
+    // Re-calculate the pp_max values for each step adjusted for the GF
+    updateStepsPhaseFromFirstDeco();
+    applyGases();
+    calculatePPInertGas();
+    applyGF();
+    calculatePPInertGasMax();   
 
-        // Clear deco steps
-        clearDecoSteps();
+    // Calculate deco steps & Update other variables
+    calculateDecoSteps();
+    updateStepsPhaseFromFirstDeco();
+    calculateOtherVariables(100, printLog); // GF 100 for ceiling
+    calculateTimeProfile(printLog);
 
-        // Update phase from first deco
-        updateStepsPhaseFromFirstDeco();
-        
-        // Apply gases
-        applyGases();
-
-        // Initialise the gradient factor
-        applyGF();
-
-        // Calculate ppInertGas for all steps
-        calculatePPInertGas();
-
-        // Calculate ppInertGasMax for all steps
-        calculatePPInertGasMax();
-
-        // Returns the first deco stop, required for applying the GF
-        setFirstDecoDepth();
-
-        // Update phase from first deco
-        updateStepsPhaseFromFirstDeco();
-
-        // Re-apply gases after the first deco is found as the maxPPo2 will have changed for deco steps
-        applyGases();
-
-        // Re-calculate ppInertGas for all steps after re-applying the gas
-        calculatePPInertGas();
-
-        // Apply the gradient factor to each step based on first deco stop determined
-        applyGF();
-
-        // Calculate the pp_max values for each step adjusted for the GF
-        calculatePPInertGasMax();   
-
-        // Calculate deco steps
-        calculateDecoSteps();
-
-        // Update other variables
-        updateStepsPhaseFromFirstDeco();
-        updateVariables(100); // GF 100 for ceiling
-        updateTimeProfile();
-
-        // Monitor performance
+    // Monitor performance
+    if (printLog) {
         printf("DivePlan::calculate() took %lld ms\n", timer.elapsed());
         printf("DivePlan::calculate() - END\n\n");
-
-    }, "DivePlan::calculate", "Calculation Error");
-
-    // Reset dirty flag after calculation
-    m_divePlanDirty = false;
-    m_UIdivePlanDirty = true;
-
-    m_gasConsumptionDirty = true;
-    m_summaryDirty = true;
+    }
 }
 
-void DivePlan::clearDecoSteps(){
+void DivePlan::calculateOtherVariables(double GF, bool printLog){
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
+    updateStepsPhaseFromFirstDeco();
+
     for (int i = 0; i < nbOfSteps(); i++){
-        if (m_diveProfile[i].m_phase == Phase::DECO){
-            m_diveProfile[i].m_time = 0.0;
+        m_diveProfile[i].updatePAmb();
+        m_diveProfile[i].updateCeiling(GF);        
+        m_diveProfile[i].updateConsumption();
+        m_diveProfile[i].m_pO2Max = m_diveProfile[i].m_pAmbMax * m_diveProfile[i].m_o2Percent / 100.0;
+        m_diveProfile[i].m_n2Percent = 100.0 - m_diveProfile[i].m_o2Percent - m_diveProfile[i].m_hePercent;
+        m_diveProfile[i].updateGFSurface(&m_diveProfile[nbOfSteps() - 1]);
+        m_diveProfile[i].updateDensity();
+        m_diveProfile[i].updateEND();
+
+        if (i > 0){
+            m_diveProfile[i].updateOxygenToxicity(&m_diveProfile[i - 1]);
+            m_diveProfile[i].updateRunTime(&m_diveProfile[i - 1]);
+        }
+        else{
+            m_diveProfile[0].m_runTime = m_diveProfile[0].m_time;
         }
     }
+
+    // Monitor performance
+    if (printLog) {
+        printf("DivePlan::updateVariables() took %lld ms\n", timer.elapsed());
+    }
 }
 
-void DivePlan::updateGasConsumption(bool force) {
-    // Skip calculation if not dirty and not forced
-    if (!force && !m_gasConsumptionDirty) {
-        printf("DivePlan::updateGasConsumption() - SKIPPED\n");
-        return;
-    }
+void DivePlan::calculateTimeProfile(bool printLog){
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
     
+    double time_increment = g_parameters.m_timeIncrementDeco;
+    int total_time_steps = (int) (m_diveProfile[nbOfSteps() - 1].m_runTime / time_increment);
+
+    m_timeProfile.clear();
+    m_timeProfile.resize(total_time_steps);
+
+    int diveplan_index = 0;
+    int timeplan_index = 0;
+        
+    double run_time = time_increment;
+    double CNS_total_single_dive = 0;
+    double CNS_total_multiple_dives = 0;
+    double OTU_total = 0;
+
+    for (diveplan_index = 1; diveplan_index < nbOfSteps(); diveplan_index++){
+        double diveplan_start_time = m_diveProfile[diveplan_index].m_runTime - m_diveProfile[diveplan_index].m_time;
+        double diveplan_end_time = m_diveProfile[diveplan_index].m_runTime;
+
+        while (diveplan_start_time < run_time && run_time <= diveplan_end_time){
+            m_timeProfile[timeplan_index] = m_diveProfile[diveplan_index];
+            
+            // Only adjusts the values which are dependant on time
+            m_timeProfile[timeplan_index].m_time = time_increment;
+            m_timeProfile[timeplan_index].m_runTime = run_time;
+
+            m_timeProfile[timeplan_index].m_stepConsumption = m_timeProfile[timeplan_index].m_ambConsumptionAtDepth * time_increment;
+            
+            m_timeProfile[timeplan_index].m_cnsStepSingleDive = 
+                (m_timeProfile[timeplan_index].m_cnsMaxMinSingleDive != 0) ? 100 * time_increment / m_timeProfile[timeplan_index].m_cnsMaxMinSingleDive : 0;
+            CNS_total_single_dive += m_timeProfile[timeplan_index].m_cnsStepSingleDive;
+            m_timeProfile[timeplan_index].m_cnsTotalSingleDive = CNS_total_single_dive;
+
+            m_timeProfile[timeplan_index].m_cnsStepMultipleDives = 
+                (m_timeProfile[timeplan_index].m_cnsMaxMinMultipleDives != 0) ? 100 * time_increment / m_timeProfile[timeplan_index].m_cnsMaxMinMultipleDives : 0;
+            CNS_total_multiple_dives += m_timeProfile[timeplan_index].m_cnsStepMultipleDives;
+            m_timeProfile[timeplan_index].m_cnsTotalMultipleDives = CNS_total_multiple_dives;
+
+            m_timeProfile[timeplan_index].m_otuStep = time_increment * m_timeProfile[timeplan_index].m_otuPerMin;
+            OTU_total += m_timeProfile[timeplan_index].m_otuStep;
+            m_timeProfile[timeplan_index].m_otuTotal = OTU_total;
+
+            double pp_time = run_time - (m_diveProfile[diveplan_index].m_runTime - m_diveProfile[diveplan_index].m_time);
+            m_timeProfile[timeplan_index].calculatePPInertGasForStep(m_diveProfile[diveplan_index], pp_time);
+
+            timeplan_index++;
+            run_time += time_increment;
+        }
+    }
+
+    for (int i = 0; i < total_time_steps; i++){
+        m_timeProfile[i].updateGFSurface(&m_diveProfile[nbOfSteps() - 1]);
+        m_timeProfile[i].updateCeiling(100);
+    }
+
+    // Monitor performance
+    if (printLog) {
+        printf("DivePlan::updateTimeProfile() took %lld ms\n", timer.elapsed());
+    }
+
+}
+
+void DivePlan::calculateGasConsumption(bool printLog) {
     if (m_gasAvailable.empty() || m_diveProfile.empty()) {
         return;
     }
@@ -243,19 +280,63 @@ void DivePlan::updateGasConsumption(bool force) {
     }
 
     // Monitor performance
-    printf("DivePlan::updateGasConsumption() took %lld ms\n", timer.elapsed());
+    if (printLog) {
+        printf("DivePlan::updateGasConsumption() took %lld ms\n", timer.elapsed());
+    }
+}
 
-    // Reset dirty flag after calculation
-    m_gasConsumptionDirty = false;
-    m_UIgasesDirty = true;
+void DivePlan::calculateDiveSummary(bool printLog) {
+    if (m_diveProfile.empty()) return;
+
+    if (printLog) {
+        printf("\nDivePlan::calculateDiveSummary() - START\n");
+    }
+
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+    
+    m_tts = getTTS();
+    m_ttsDelta = getTTSDelta(5);
+   
+    bool showAP = (m_mode == diveMode::OC) || 
+                  (m_mode == diveMode::CC && m_bailout);
+
+
+    if (showAP) {
+        m_maxResult = getMaxTimeAndTTS();
+        m_ap = getAP();
+    }
+
+    bool hasMission = (m_mission > 0);
+    if (hasMission){
+        m_turnTts = getTurnTTS();
+    }
+    
+    bool showTP = (m_mode == diveMode::OC && hasMission);
+    if (showTP){
+        m_tp = getTP();
+    }
+    
+    // Monitor performance
+    if (printLog) {
+        printf("DivePlan::calculateDiveSummary() took %lld ms\n", timer.elapsed());
+        printf("DivePlan::calculateDiveSummary() - END\n\n");
+    }
+}
+
+void DivePlan::clearDecoSteps(){
+    for (int i = 0; i < nbOfSteps(); i++){
+        if (m_diveProfile[i].m_phase == Phase::DECO){
+            m_diveProfile[i].m_time = 0.0;
+        }
+    }
 }
 
 std::pair<double, double> DivePlan::getMaxTimeAndTTS() {       
     // Log performance
     QElapsedTimer timer;
     timer.start();
-
-    printf("DivePlan::getMaxTimeAndTTS() - START\n");
 
     DivePlan tempDivePlan = *this;
     double maxTime = 0.0, maxTTS = 0.0;
@@ -272,10 +353,8 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
     }
 
     // Recalculate the dive plan
-    tempDivePlan.m_divePlanDirty = true;
-    tempDivePlan.m_gasConsumptionDirty = true;
-    tempDivePlan.calculate();
-    tempDivePlan.updateGasConsumption();
+    tempDivePlan.calculateDivePlan(false);
+    tempDivePlan.calculateGasConsumption(false);
 
     // Check if 0 of bottom time is enough gas available
     if(!tempDivePlan.enoughGasAvailable()){
@@ -285,21 +364,17 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
     // iterate the time of the bottom phase until the gas is not enough
     while(tempDivePlan.enoughGasAvailable()){
         tempDivePlan.m_diveProfile[firstStopIndex].m_time += g_parameters.m_timeIncrementMaxTime;
-        tempDivePlan.m_divePlanDirty = true;
-        tempDivePlan.m_gasConsumptionDirty = true;
-        tempDivePlan.calculate();
-        tempDivePlan.updateGasConsumption();
+        tempDivePlan.calculateDivePlan(false);
+        tempDivePlan.calculateGasConsumption(false);
     }
 
     tempDivePlan.m_diveProfile[firstStopIndex].m_time -= g_parameters.m_timeIncrementMaxTime;
     maxTime = std::max(0.0, tempDivePlan.m_diveProfile[firstStopIndex].m_time);
-    tempDivePlan.m_divePlanDirty = true;
-    tempDivePlan.calculate();
+    tempDivePlan.calculateDivePlan(false);
     maxTTS = tempDivePlan.getTTS();
 
     // Monitor performance
     printf("DivePlan::getMaxTimeAndTTS() took %lld ms\n", timer.elapsed());
-    printf("DivePlan::getMaxTimeAndTTS() - END\n\n");
 
     return std::make_pair(maxTime, maxTTS);
 }
@@ -339,7 +414,6 @@ double DivePlan::getTTSDelta(double incrementTime){
     QElapsedTimer timer;
     timer.start();
 
-    printf("DivePlan::getTTSDelta() - START\n");
     DivePlan tempDivePlan = *this;
 
     // Find the deepest STOP phase in the dive profile
@@ -364,12 +438,10 @@ double DivePlan::getTTSDelta(double incrementTime){
         tempDivePlan.m_diveProfile[deepestStopIndex].m_time + incrementTime);
 
     // Recalculate the dive plan
-    tempDivePlan.m_divePlanDirty = true;
-    tempDivePlan.calculate();
+    tempDivePlan.calculateDivePlan(false);
 
     // Monitor performance
     printf("DivePlan::getTTSDelta() took %lld ms\n", timer.elapsed());
-    printf("DivePlan::getTTSDelta() - END\n\n");
 
     return tempDivePlan.getTTS() - getTTS();
 }
@@ -879,100 +951,6 @@ void DivePlan::updateRunTimes(){
     for (int i = 1; i < (int) m_diveProfile.size(); i++) {
         m_diveProfile[i].updateRunTime(&m_diveProfile[i - 1]);
     }
-}
-
-void DivePlan::updateVariables(double GF){
-    // Log performance
-    QElapsedTimer timer;
-    timer.start();
-
-    updateStepsPhaseFromFirstDeco();
-
-    for (int i = 0; i < nbOfSteps(); i++){
-        m_diveProfile[i].updatePAmb();
-        m_diveProfile[i].updateCeiling(GF);        
-        m_diveProfile[i].updateConsumption();
-        m_diveProfile[i].m_pO2Max = m_diveProfile[i].m_pAmbMax * m_diveProfile[i].m_o2Percent / 100.0;
-        m_diveProfile[i].m_n2Percent = 100.0 - m_diveProfile[i].m_o2Percent - m_diveProfile[i].m_hePercent;
-        m_diveProfile[i].updateGFSurface(&m_diveProfile[nbOfSteps() - 1]);
-        m_diveProfile[i].updateDensity();
-        m_diveProfile[i].updateEND();
-
-        if (i > 0){
-            m_diveProfile[i].updateOxygenToxicity(&m_diveProfile[i - 1]);
-            m_diveProfile[i].updateRunTime(&m_diveProfile[i - 1]);
-        }
-        else{
-            m_diveProfile[0].m_runTime = m_diveProfile[0].m_time;
-        }
-    }
-
-    // Monitor performance
-    printf("DivePlan::updateVariables() took %lld ms\n", timer.elapsed());
-}
-
-void DivePlan::updateTimeProfile(){
-    // Log performance
-    QElapsedTimer timer;
-    timer.start();
-    
-    double time_increment = g_parameters.m_timeIncrementDeco;
-    int total_time_steps = (int) (m_diveProfile[nbOfSteps() - 1].m_runTime / time_increment);
-
-    m_timeProfile.clear();
-    m_timeProfile.resize(total_time_steps);
-
-    int diveplan_index = 0;
-    int timeplan_index = 0;
-        
-    double run_time = time_increment;
-    double CNS_total_single_dive = 0;
-    double CNS_total_multiple_dives = 0;
-    double OTU_total = 0;
-
-    for (diveplan_index = 1; diveplan_index < nbOfSteps(); diveplan_index++){
-        double diveplan_start_time = m_diveProfile[diveplan_index].m_runTime - m_diveProfile[diveplan_index].m_time;
-        double diveplan_end_time = m_diveProfile[diveplan_index].m_runTime;
-
-        while (diveplan_start_time < run_time && run_time <= diveplan_end_time){
-            m_timeProfile[timeplan_index] = m_diveProfile[diveplan_index];
-            
-            // Only adjusts the values which are dependant on time
-            m_timeProfile[timeplan_index].m_time = time_increment;
-            m_timeProfile[timeplan_index].m_runTime = run_time;
-
-            m_timeProfile[timeplan_index].m_stepConsumption = m_timeProfile[timeplan_index].m_ambConsumptionAtDepth * time_increment;
-            
-            m_timeProfile[timeplan_index].m_cnsStepSingleDive = 
-                (m_timeProfile[timeplan_index].m_cnsMaxMinSingleDive != 0) ? 100 * time_increment / m_timeProfile[timeplan_index].m_cnsMaxMinSingleDive : 0;
-            CNS_total_single_dive += m_timeProfile[timeplan_index].m_cnsStepSingleDive;
-            m_timeProfile[timeplan_index].m_cnsTotalSingleDive = CNS_total_single_dive;
-
-            m_timeProfile[timeplan_index].m_cnsStepMultipleDives = 
-                (m_timeProfile[timeplan_index].m_cnsMaxMinMultipleDives != 0) ? 100 * time_increment / m_timeProfile[timeplan_index].m_cnsMaxMinMultipleDives : 0;
-            CNS_total_multiple_dives += m_timeProfile[timeplan_index].m_cnsStepMultipleDives;
-            m_timeProfile[timeplan_index].m_cnsTotalMultipleDives = CNS_total_multiple_dives;
-
-            m_timeProfile[timeplan_index].m_otuStep = time_increment * m_timeProfile[timeplan_index].m_otuPerMin;
-            OTU_total += m_timeProfile[timeplan_index].m_otuStep;
-            m_timeProfile[timeplan_index].m_otuTotal = OTU_total;
-
-            double pp_time = run_time - (m_diveProfile[diveplan_index].m_runTime - m_diveProfile[diveplan_index].m_time);
-            m_timeProfile[timeplan_index].calculatePPInertGasForStep(m_diveProfile[diveplan_index], pp_time);
-
-            timeplan_index++;
-            run_time += time_increment;
-        }
-    }
-
-    for (int i = 0; i < total_time_steps; i++){
-        m_timeProfile[i].updateGFSurface(&m_diveProfile[nbOfSteps() - 1]);
-        m_timeProfile[i].updateCeiling(100);
-    }
-
-    // Monitor performance
-    printf("DivePlan::updateTimeProfile() took %lld ms\n", timer.elapsed());
-
 }
 
 // Print-to-terminal functions

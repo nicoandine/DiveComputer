@@ -5,6 +5,10 @@
 namespace DiveComputer {
 
 void DivePlanWindow::setupGasesTable() {
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Set up column headers
     QStringList headers;
     headers << "O2\n(%)" << "He\n(%)" << "Switch\n(m)" << "Switch\n(ppO2)" << "Consumption\n(L)" 
@@ -56,26 +60,18 @@ void DivePlanWindow::setupGasesTable() {
     for (int i = 0; i < gasesTable->horizontalHeader()->count(); ++i) {
         gasesTable->setColumnWidth(i, m_gasesColumnWidths[i]);
     }
+
+    // Monitor performance
+    printf("DivePlanWindow::setupGasesTable() took %lld ms\n", timer.elapsed());
+
+    // Refresh the gases table
+    refreshGasesTable();
 }
 
 void DivePlanWindow::refreshGasesTable() {
-    if (!m_divePlan->m_UIgasesDirty){
-        printf("Gaslist table refresh - SKIPPED\n");
-        return;
-    }
-
-    if (m_isUpdating) {
-        qDebug() << "Skipping refreshGasesTable() - already updating";
-        return; // Prevent recursive calls
-    }
-
-    m_isUpdating = true;
-    
     // Log performance
     QElapsedTimer timer;
     timer.start();
-
-    m_divePlan->updateGasConsumption();
 
     // Use the TableHelper for safe update
     TableHelper::safeUpdate(gasesTable, this, &DivePlanWindow::gasTableCellChanged, [this]() {
@@ -165,10 +161,11 @@ void DivePlanWindow::refreshGasesTable() {
     // Resize table columns
     resizeGasesTable();
 
+    // Allow UI to process events after the edit
+    QApplication::processEvents();
+
     // Monitor performance
     printf("DivePlanWindow::refreshGasesTable() took %lld ms\n", timer.elapsed());
-
-    m_isUpdating = false;
 }
 
 void DivePlanWindow::resizeGasesTable() {
@@ -220,9 +217,6 @@ void DivePlanWindow::resizeGasesTable() {
 }
 
 void DivePlanWindow::updateGasTablePressures() {
-    // Block signals during the update
-    bool wasBlocked = gasesTable->blockSignals(true);
-
     // Get current values from the table
     for (int row = 0; row < gasesTable->rowCount(); ++row) {
         // Get the original index from the O2 column's user data
@@ -270,7 +264,6 @@ void DivePlanWindow::updateGasTablePressures() {
             }
         }
     }
-    gasesTable->blockSignals(wasBlocked);
 }
 
 void DivePlanWindow::gasTableCellChanged(int row, int column) {
@@ -380,13 +373,12 @@ void DivePlanWindow::gasTableCellChanged(int row, int column) {
                     column == GAS_COL_TANK_CAPACITY || 
                     column == GAS_COL_FILLING_PRESSURE ||
                     column == GAS_COL_RESERVE_PRESSURE) {
-                    // Recalculate and refresh the dive plan
-                    m_divePlan->m_gasConsumptionDirty = true;  // Mark as dirty
-                    m_divePlan->updateGasConsumption();
-                    
-                    // Update the summary
-                    m_divePlan->m_summaryDirty = true;
-                    refreshWindow();
+
+                    // Recalculate and refresh
+                    m_divePlan->calculateGasConsumption();
+                    m_divePlan->calculateDiveSummary();
+                    refreshGasesTable();
+                    refreshDiveSummaryTable();
                 }
             }
         } else {
@@ -400,7 +392,6 @@ void DivePlanWindow::gasTableCellChanged(int row, int column) {
                 GasAvailable& gas = m_divePlan->m_gasAvailable[originalIndex];
                 
                 // Reset to original value
-                gasesTable->blockSignals(true);
                 switch (column) {
                     case GAS_COL_SWITCH_DEPTH:
                         item->setText(QString::number(gas.m_switchDepth, 'f', 0));
@@ -421,7 +412,6 @@ void DivePlanWindow::gasTableCellChanged(int row, int column) {
                         item->setText(QString::number(gas.m_reservePressure, 'f', 0));
                         break;
                 }
-                gasesTable->blockSignals(false);
             }
         }
     }

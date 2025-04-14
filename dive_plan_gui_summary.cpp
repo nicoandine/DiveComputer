@@ -5,11 +5,15 @@
 namespace DiveComputer {
 
 void DivePlanWindow::setupSummaryWidget() {
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
     // Create layout for the summary widget
-    QVBoxLayout* summaryLayout = qobject_cast<QVBoxLayout*>(topWidget1->layout());
+    QVBoxLayout* summaryLayout = qobject_cast<QVBoxLayout*>(summaryTable->layout());
     if (!summaryLayout) {
-        summaryLayout = new QVBoxLayout(topWidget1);
-        topWidget1->setLayout(summaryLayout);
+        summaryLayout = new QVBoxLayout(summaryTable);
+        summaryTable->setLayout(summaryLayout);
     }
     
     // Clear any existing content
@@ -26,14 +30,14 @@ void DivePlanWindow::setupSummaryWidget() {
     formLayout->setVerticalSpacing(5);
     
     // Add label for dive number with explicit style
-    QLabel* diveNumberTitle = new QLabel("Dive Number:", topWidget1);
+    QLabel* diveNumberTitle = new QLabel("Dive Number:", summaryTable);
     diveNumberTitle->setStyleSheet(PLAIN_STYLE);
-    QLabel* diveNumberLabel = new QLabel(QString::number(m_divePlan->m_diveNumber), topWidget1);
+    QLabel* diveNumberLabel = new QLabel(QString::number(m_divePlan->m_diveNumber), summaryTable);
     diveNumberLabel->setStyleSheet(PLAIN_STYLE);
     formLayout->addRow(diveNumberTitle, diveNumberLabel);
     
     // Add GF values (editable)
-    QWidget* gfWidget = new QWidget(topWidget1);
+    QWidget* gfWidget = new QWidget(summaryTable);
     gfWidget->setStyleSheet(PLAIN_STYLE);
     QHBoxLayout* gfLayout = new QHBoxLayout(gfWidget);
     gfLayout->setContentsMargins(0, 0, 0, 0);
@@ -68,7 +72,7 @@ void DivePlanWindow::setupSummaryWidget() {
     gfLayout->addStretch();
     
     // Add GF title with explicit style
-    QLabel* gfTitle = new QLabel("GF:", topWidget1);
+    QLabel* gfTitle = new QLabel("GF:", summaryTable);
     gfTitle->setStyleSheet(PLAIN_STYLE);
     formLayout->addRow(gfTitle, gfWidget);
     
@@ -77,18 +81,18 @@ void DivePlanWindow::setupSummaryWidget() {
     connect(gfHighEdit, &QLineEdit::editingFinished, this, &DivePlanWindow::onGFChanged);
     
     // Add TTS Target with explicit style for both label and value
-    QLabel* ttsTargetTitle = new QLabel("TTS Target:", topWidget1);
+    QLabel* ttsTargetTitle = new QLabel("TTS Target:", summaryTable);
     ttsTargetTitle->setStyleSheet(PLAIN_STYLE);
-    ttsTargetLabel = new QLabel("-- min", topWidget1);
+    ttsTargetLabel = new QLabel("-- min", summaryTable);
     ttsTargetLabel->setStyleSheet(PLAIN_STYLE);
     formLayout->addRow(ttsTargetTitle, ttsTargetLabel);
     
     // Add Max TTS with explicit style for both label and value
-    QLabel* maxTtsTitle = new QLabel("TTS Max:", topWidget1);
+    QLabel* maxTtsTitle = new QLabel("TTS Max:", summaryTable);
     maxTtsTitle->setStyleSheet(PLAIN_STYLE);
     
     // Create a container widget for consistent visibility management
-    QWidget* maxTtsWidget = new QWidget(topWidget1);
+    QWidget* maxTtsWidget = new QWidget(summaryTable);
     maxTtsWidget->setStyleSheet(PLAIN_STYLE);
     QHBoxLayout* maxTtsLayout = new QHBoxLayout(maxTtsWidget);
     maxTtsLayout->setContentsMargins(0, 0, 0, 0);
@@ -108,10 +112,10 @@ void DivePlanWindow::setupSummaryWidget() {
     m_summaryWidgets.append(qMakePair(maxTtsTitle, maxTtsWidget));
     
     // Add Max Time with explicit style for both label and value
-    QLabel* maxTimeTitle = new QLabel("Max BT:", topWidget1);
+    QLabel* maxTimeTitle = new QLabel("Max BT:", summaryTable);
     maxTimeTitle->setStyleSheet(PLAIN_STYLE);
     
-    QWidget* maxTimeWidget = new QWidget(topWidget1);
+    QWidget* maxTimeWidget = new QWidget(summaryTable);
     maxTimeWidget->setStyleSheet(PLAIN_STYLE);
     QHBoxLayout* maxTimeLayout = new QHBoxLayout(maxTimeWidget);
     maxTimeLayout->setContentsMargins(0, 0, 0, 0);
@@ -128,18 +132,18 @@ void DivePlanWindow::setupSummaryWidget() {
     m_summaryWidgets.append(qMakePair(maxTimeTitle, maxTimeWidget));
     
     // Add TTS Delta with explicit style for both label and value
-    QLabel* ttsDeltaTitle = new QLabel("\u0394 TTS +5min:", topWidget1);
+    QLabel* ttsDeltaTitle = new QLabel("\u0394 TTS +5min:", summaryTable);
     ttsDeltaTitle->setStyleSheet(PLAIN_STYLE);
-    ttsDeltaLabel = new QLabel("-- min", topWidget1);
+    ttsDeltaLabel = new QLabel("-- min", summaryTable);
     ttsDeltaLabel->setStyleSheet(PLAIN_STYLE);
     formLayout->addRow(ttsDeltaTitle, ttsDeltaLabel);
     
     // Add AP (conditionally shown) with bar unit on the right
-    QLabel* apLabelTitle = new QLabel("AP:", topWidget1);
+    QLabel* apLabelTitle = new QLabel("AP:", summaryTable);
     apLabelTitle->setStyleSheet(PLAIN_STYLE);
     
     // Create widget to hold AP value and unit
-    QWidget* apWidget = new QWidget(topWidget1);
+    QWidget* apWidget = new QWidget(summaryTable);
     apWidget->setStyleSheet(PLAIN_STYLE);
     QHBoxLayout* apLayout = new QHBoxLayout(apWidget);
     apLayout->setContentsMargins(0, 0, 0, 0);
@@ -157,11 +161,11 @@ void DivePlanWindow::setupSummaryWidget() {
     m_summaryWidgets.append(qMakePair(apLabelTitle, apWidget));
     
     // Create the mission input (editable, conditionally shown) with min unit on the right
-    QLabel* missionLabelTitle = new QLabel("Mission:", topWidget1);
+    QLabel* missionLabelTitle = new QLabel("Mission:", summaryTable);
     missionLabelTitle->setStyleSheet(PLAIN_STYLE);
     
     // Create a widget to hold the mission edit field and unit label
-    QWidget* missionWidget = new QWidget(topWidget1);
+    QWidget* missionWidget = new QWidget(summaryTable);
     missionWidget->setStyleSheet(PLAIN_STYLE);
     QHBoxLayout* missionLayout = new QHBoxLayout(missionWidget);
     missionLayout->setContentsMargins(0, 0, 0, 0);
@@ -190,10 +194,10 @@ void DivePlanWindow::setupSummaryWidget() {
     connect(missionEdit, &QLineEdit::editingFinished, this, &DivePlanWindow::onMissionChanged);
     
     // Add Turn TTS (conditionally shown)
-    QLabel* turnTtsLabelTitle = new QLabel("Turn TTS:", topWidget1);
+    QLabel* turnTtsLabelTitle = new QLabel("Turn TTS:", summaryTable);
     turnTtsLabelTitle->setStyleSheet(PLAIN_STYLE);
     
-    QWidget* turnTtsWidget = new QWidget(topWidget1);
+    QWidget* turnTtsWidget = new QWidget(summaryTable);
     turnTtsWidget->setStyleSheet(PLAIN_STYLE);
     QHBoxLayout* turnTtsLayout = new QHBoxLayout(turnTtsWidget);
     turnTtsLayout->setContentsMargins(0, 0, 0, 0);
@@ -210,11 +214,11 @@ void DivePlanWindow::setupSummaryWidget() {
     m_summaryWidgets.append(qMakePair(turnTtsLabelTitle, turnTtsWidget));
     
     // Add TP with bar unit on the right (conditionally shown)
-    QLabel* tpLabelTitle = new QLabel("TP:", topWidget1);
+    QLabel* tpLabelTitle = new QLabel("TP:", summaryTable);
     tpLabelTitle->setStyleSheet(PLAIN_STYLE);
     
     // Create widget to hold TP value and unit
-    QWidget* tpWidget = new QWidget(topWidget1);
+    QWidget* tpWidget = new QWidget(summaryTable);
     tpWidget->setStyleSheet(PLAIN_STYLE);
     QHBoxLayout* tpLayout = new QHBoxLayout(tpWidget);
     tpLayout->setContentsMargins(0, 0, 0, 0);
@@ -236,47 +240,25 @@ void DivePlanWindow::setupSummaryWidget() {
     // Add stretch to push everything to the top
     summaryLayout->addStretch();
     
+    // Monitor performance
+    printf("DivePlanWindow::setupSummaryTable() took %lld ms\n", timer.elapsed());
+
     // Update the dive summary
-    refreshWindow();
+    refreshDiveSummaryTable();
 }
 
 void DivePlanWindow::refreshDiveSummaryTable() {
-    if (!m_divePlan) return;
-    
-    if (!m_divePlan->m_summaryDirty) {
-        printf("DivePlanWindow::refreshDiveSummary() - SKIPPED\n");
-        return;
-    }
-
     // Log performance
     QElapsedTimer timer;
     timer.start();
-
-    // Prevent recursion
-    static bool isRefreshing = false;
-    if (isRefreshing) return;
-    
-    isRefreshing = true;
     
     // Update TTS Target - always visible
-    double tts = m_divePlan->getTTS();
-    ttsTargetLabel->setText(QString::number(tts, 'f', 0) + " min");
-    
-    // Update TTS Delta - always visible
-    double ttsDelta = m_divePlan->getTTSDelta(5);
-    ttsDeltaLabel->setText(QString::number(ttsDelta, 'f', 0) + " min");
+    ttsTargetLabel->setText(QString::number(m_divePlan->m_tts, 'f', 0) + " min");
+    ttsDeltaLabel->setText(QString::number(m_divePlan->m_ttsDelta, 'f', 0) + " min");
     
     // Show/hide and update all AP-dependent elements
     bool showAP = (m_divePlan->m_mode == diveMode::OC) || 
                   (m_divePlan->m_mode == diveMode::CC && m_divePlan->m_bailout);
-
-    // Get the max time and TTS values (calculated once)
-    std::pair<double, double> maxResult;
-    double ap = 0;
-    if (showAP) {
-        maxResult = m_divePlan->getMaxTimeAndTTS();
-        ap = m_divePlan->getAP();
-    }
 
     // Process all elements using their titles
     const QStringList apDependentTitles = {"Max BT:", "TTS Max:", "AP:"};
@@ -296,11 +278,11 @@ void DivePlanWindow::refreshDiveSummaryTable() {
             // Update values if visible
             if (showAP) {
                 if (pair.first->text() == "Max BT:") {
-                    pair.second->setText(QString::number(maxResult.first, 'f', 0) + " min");
+                    pair.second->setText(QString::number(m_divePlan->m_maxResult.first, 'f', 0) + " min");
                 } else if (pair.first->text() == "TTS Max:") {
-                    pair.second->setText(QString::number(maxResult.second, 'f', 0) + " min");
+                    pair.second->setText(QString::number(m_divePlan->m_maxResult.second, 'f', 0) + " min");
                 } else if (pair.first->text() == "AP:") {
-                    pair.second->setText(QString::number(ap, 'f', 0) + " bar" + 
+                    pair.second->setText(QString::number(m_divePlan->m_ap, 'f', 0) + " bar" + 
                         (g_parameters.m_calculateAPandTPonOneTank ? " (on one tank)" : " (on all tanks)"));
                 }
             }
@@ -322,8 +304,7 @@ void DivePlanWindow::refreshDiveSummaryTable() {
             pair.second->setVisible(hasMission);
             
             if (hasMission) {
-                double turnTts = m_divePlan->getTurnTTS();
-                turnTtsLabel->setText(QString::number(turnTts, 'f', 0) + " min");
+                turnTtsLabel->setText(QString::number(m_divePlan->m_turnTts, 'f', 0) + " min");
             }
             break;
         }
@@ -339,19 +320,18 @@ void DivePlanWindow::refreshDiveSummaryTable() {
             pair.second->setVisible(showTP);
             
             if (showTP) {
-                double tp = m_divePlan->getTP();
-                tpLabel->setText(QString::number(tp, 'f', 0) + " bar" + 
+                tpLabel->setText(QString::number(m_divePlan->m_tp, 'f', 0) + " bar" + 
                     (g_parameters.m_calculateAPandTPonOneTank ? " (on one tank)" : " (on all tanks)"));
             }
             break;
         }
     }
     
-    isRefreshing = false;
+    // Allow UI to process events after the edit
+    QApplication::processEvents();
 
     // Monitor performance
-    printf("DivePlanWindow::refreshDiveSummary() took %lld ms\n", timer.elapsed());
-    m_divePlan->m_summaryDirty = false;
+    printf("DivePlanWindow::refreshDiveSummaryTable() took %lld ms\n", timer.elapsed());
 }
 
 void DivePlanWindow::onGFChanged() {
@@ -371,12 +351,10 @@ void DivePlanWindow::onGFChanged() {
     g_parameters.m_gf[0] = gfLow;
     g_parameters.m_gf[1] = gfHigh;
     
-    // Recalculate dive plan
-    m_divePlan->calculate();
-    
-    // Refresh UI
-    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-    m_divePlan->m_summaryDirty = true;
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
     refreshWindow();
 }
 
@@ -394,12 +372,10 @@ void DivePlanWindow::onMissionChanged() {
     // Apply change
     m_divePlan->m_mission = mission;
     
-    // Recalculate dive plan
-    m_divePlan->calculate();
-    
-    // Refresh UI
-    m_divePlan->m_divePlanDirty = true;  // Mark as dirty
-    m_divePlan->m_summaryDirty = true;
+    // Refresh the dive plan
+    m_divePlan->calculateDivePlan();
+    m_divePlan->calculateGasConsumption();
+    m_divePlan->calculateDiveSummary();
     refreshWindow();
 }
 

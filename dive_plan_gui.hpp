@@ -129,19 +129,15 @@ private:
     QAction* m_ocModeAction;
     QAction* m_bailoutAction;
     QAction* m_gfBoostedAction;
-    
-    // Menu methods
-    void setupMenu();
-    void updateMenuState();
+    QAction* m_maxTimeAction;
+    QAction* m_optimiseDecoGasAction;
 
     // UI controls
-    // QComboBox *modeComboBox;
-    //QCheckBox *bailoutCheckBox;
     QTableWidget *stopStepsTable;
-    QTableWidget* setpointsTable;
+    QTableWidget *setpointsTable;
     QTableWidget *divePlanTable;
     QTableWidget *gasesTable;
-    QWidget *topWidget1; // Reference to the top-left widget (for summary display)
+    QWidget      *summaryTable; // Reference to the top-left widget (for summary display)
 
     // Track splitters for standardized behavior
     QSplitter* mainSplitter = nullptr; // Main splitter between left and right panels
@@ -153,9 +149,6 @@ private:
     QLabel *infoLabel;
     QSplitter *verticalSplitter;
     QPushButton *toggleTableButton;
-
-    // check if already updating
-    bool m_isUpdating = false;
 
     // Store original column widths for proportional resizing
     QVector<int> m_originalColumnWidths;
@@ -219,8 +212,6 @@ private:
     void highlightWarningCells();
 
 private slots:
-    // Registered slots
-    void diveModeChanged(int index);
     void divePlanCellChanged(int row, int column);
     void setpointCellChanged(int row, int column);
     void addSetpoint();
@@ -236,8 +227,13 @@ private slots:
     void resizeDivePlanTable();
     void resizeGasesTable();
     
-    // Action methods
+    // Menu methods
+    void setupMenu();
+    void updateMenuState();
     void ccModeActivated();
+    void ocModeActivated();
+    void bailoutActionTriggered();
+    void gfBoostedActionTriggered();
     void setMaxTime();
     void optimiseDecoGas();
 

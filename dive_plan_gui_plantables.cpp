@@ -86,7 +86,7 @@ void DivePlanWindow::refreshDivePlanTable() {
     timer.start();
 
     // Use the TableHelper for safe update
-    TableHelper::safeUpdate(divePlanTable, this, &DivePlanWindow::divePlanCellChanged, [this]() {
+    TableHelper::safeUpdate(divePlanTable, nullptr, nullptr, [this]() {
         // Filter steps to hide certain phases where time = 0
         std::vector<DiveStep> filteredSteps;
         for (int i = 0; i < m_divePlan->nbOfSteps(); ++i) {
@@ -132,8 +132,8 @@ void DivePlanWindow::refreshDivePlanTable() {
                 TableHelper::createReadOnlyCell(depthRange));
             
             // Time
-            QTableWidgetItem* timeItem = TableHelper::createNumericCell(step.m_time, 1, step.m_phase == Phase::STOP);
-            divePlanTable->setItem(i, COL_TIME, timeItem);
+            divePlanTable->setItem(i, COL_TIME,
+                TableHelper::createNumericCell(step.m_time, 1, false));
             
             // Run time
             divePlanTable->setItem(i, COL_RUN_TIME, 
@@ -180,8 +180,8 @@ void DivePlanWindow::refreshDivePlanTable() {
                 TableHelper::createNumericCell(step.m_stepConsumption, 0, false));
             
             // Gas Density
-            QTableWidgetItem* densityItem = TableHelper::createNumericCell(step.m_gasDensity, 1, false);
-            divePlanTable->setItem(i, COL_GAS_DENSITY, densityItem);
+            divePlanTable->setItem(i, COL_GAS_DENSITY,
+                TableHelper::createNumericCell(step.m_gasDensity, 1, false));
             
             // END without O2
             divePlanTable->setItem(i, COL_END_WO_O2, 
@@ -192,16 +192,16 @@ void DivePlanWindow::refreshDivePlanTable() {
                 TableHelper::createNumericCell(step.m_endWithO2, 0, false));
             
             // CNS Single Dive
-            QTableWidgetItem* cnsSingleItem = TableHelper::createNumericCell(step.m_cnsTotalSingleDive, 0, false);
-            divePlanTable->setItem(i, COL_CNS_SINGLE, cnsSingleItem);
+            divePlanTable->setItem(i, COL_CNS_SINGLE, 
+                TableHelper::createNumericCell(step.m_cnsTotalSingleDive, 0, false));
             
             // CNS Multiple Dives
-            QTableWidgetItem* cnsMultipleItem = TableHelper::createNumericCell(step.m_cnsTotalMultipleDives, 0, false);
-            divePlanTable->setItem(i, COL_CNS_MULTIPLE, cnsMultipleItem);
+            divePlanTable->setItem(i, COL_CNS_MULTIPLE, 
+                TableHelper::createNumericCell(step.m_cnsTotalMultipleDives, 0, false));
             
             // OTU
-            QTableWidgetItem* otuItem = TableHelper::createNumericCell(step.m_otuTotal, 0, false);
-            divePlanTable->setItem(i, COL_OTU, otuItem);
+            divePlanTable->setItem(i, COL_OTU, 
+                TableHelper::createNumericCell(step.m_otuTotal, 0, false));
         }
         
         // Re-enable original resize mode
@@ -296,74 +296,6 @@ void DivePlanWindow::resizeDivePlanTable() {
     
     // Re-enable updates
     divePlanTable->setUpdatesEnabled(true);
-}
-
-void DivePlanWindow::divePlanCellChanged(int row, int column) {
-    // Only handle time column for STOP phases
-    if (column == COL_TIME) {
-        // First create a filtered list to map displayed row to original step
-        std::vector<DiveStep> filteredSteps;
-        std::vector<int> originalIndices; // Store original indices for the filtered steps
-        
-        for (int i = 0; i < m_divePlan->nbOfSteps(); ++i) {
-            const DiveStep& step = m_divePlan->m_diveProfile[i];
-            
-            // Keep all steps where time is not 0
-            if (step.m_time != 0) {
-                filteredSteps.push_back(step);
-                originalIndices.push_back(i);
-                continue;
-            }
-            
-            // For time = 0, only keep GAS_SWITCH phase
-            if (step.m_time == 0 && step.m_phase == Phase::GAS_SWITCH) {
-                filteredSteps.push_back(step);
-                originalIndices.push_back(i);
-            }
-        }
-        
-        // Make sure the row is valid for our filtered list
-        if (row >= 0 && row < (int) filteredSteps.size()) {
-            // Get the step using the original index
-            int originalIndex = originalIndices[row];
-            const DiveStep& step = m_divePlan->m_diveProfile[originalIndex];
-            
-            // Check if this is a STOP phase
-            if (step.m_phase == Phase::STOP) {
-                // Get the updated value
-                QTableWidgetItem* item = divePlanTable->item(row, column);
-                if (!item) return;
-                
-                bool ok;
-                double newTime = item->text().toDouble(&ok);
-                
-                if (ok) {
-                    // Find the corresponding stop step
-                    for (int i = 0; i < m_divePlan->m_stopSteps.nbOfStopSteps(); ++i) {
-                        // Match by depth to find the corresponding stop step
-                        if (std::abs(m_divePlan->m_stopSteps.m_stopSteps[i].m_depth - step.m_startDepth) < 0.1) {
-                            // Update the stop step time
-                            m_divePlan->m_stopSteps.editStopStep(i, 
-                                                             m_divePlan->m_stopSteps.m_stopSteps[i].m_depth, 
-                                                             newTime);
-                            
-                            // Recalculate everything
-                            printf("I AM GOING THROUGH HERE\n");
-                            m_divePlan->calculateDivePlan();
-                            m_divePlan->calculateGasConsumption();
-                            m_divePlan->calculateDiveSummary();
-                            refreshWindow();
-                            
-                            // Allow UI to process events
-                            QApplication::processEvents();
-                            
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 void DivePlanWindow::highlightWarningCells() {

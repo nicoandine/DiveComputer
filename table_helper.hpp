@@ -35,13 +35,24 @@ public:
         table->setHorizontalHeaderLabels(headers);
     }
     
+    // Overload for null pointers (when no signal/slot handling is needed)
+    static void safeUpdate(QTableWidget* table, std::nullptr_t, std::nullptr_t, std::function<void()> updateFunc) {
+        if (!table || !updateFunc) return;
+        
+        // Just execute the update function
+        table->clearContents();
+        updateFunc();
+    }
+    
     // Safe table update with signal blocking
     template<typename T, typename Func>
     static void safeUpdate(QTableWidget* table, T* instance, Func cellChangedHandler, std::function<void()> updateFunc) {
-        if (!table || !instance || !updateFunc) return;
+        if (!table || !updateFunc) return;
         
-        // Disconnect cell change signals temporarily
-        QObject::disconnect(table, &QTableWidget::cellChanged, instance, cellChangedHandler);
+        // Only disconnect if a valid handler is provided
+        if (instance && cellChangedHandler) {
+            QObject::disconnect(table, &QTableWidget::cellChanged, instance, cellChangedHandler);
+        }
         
         // Clear and reset the table
         table->clearContents();
@@ -49,8 +60,10 @@ public:
         // Execute the update function
         updateFunc();
         
-        // Reconnect signals
-        QObject::connect(table, &QTableWidget::cellChanged, instance, cellChangedHandler);
+        // Only reconnect if a valid handler is provided
+        if (instance && cellChangedHandler) {
+            QObject::connect(table, &QTableWidget::cellChanged, instance, cellChangedHandler);
+        }
     }
     
     // Create non-editable cell with center alignment

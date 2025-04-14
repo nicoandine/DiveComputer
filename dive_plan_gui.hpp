@@ -212,7 +212,6 @@ private:
     void highlightWarningCells();
 
 private slots:
-    void divePlanCellChanged(int row, int column);
     void setpointCellChanged(int row, int column);
     void addSetpoint();
     void deleteSetpoint(int row);

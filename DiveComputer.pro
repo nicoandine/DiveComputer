@@ -1,10 +1,13 @@
 QT += core widgets
+QT += printsupport
+
 CONFIG += c++17
 
 RESOURCES += resources.qrc
 
 SOURCES += \
     main.cpp \
+    qcustomplot.cpp \
     enum.cpp \
     global.cpp \
     constants.cpp \
@@ -22,6 +25,7 @@ SOURCES += \
     gaslist_gui.cpp \
     dive_plan_dialog.cpp \
     dive_plan_gui.cpp \
+    dive_plan_gui_compartment_graph.cpp \
     dive_plan_gui_stopsteps.cpp \
     dive_plan_gui_plantables.cpp \
     dive_plan_gui_menu.cpp \
@@ -33,6 +37,7 @@ SOURCES += \
 
 HEADERS += \
     qtheaders.hpp \
+    qcustomplot.hpp \
     error_handler.hpp \
     global.hpp \
     table_helper.hpp \
@@ -52,6 +57,7 @@ HEADERS += \
     gaslist_gui.hpp \
     dive_plan_dialog.hpp \
     dive_plan_gui.hpp \
+    dive_plan_gui_compartment_graph.hpp \
     placeholder_gui.hpp \
     ui_utils.hpp \
     main_gui.hpp

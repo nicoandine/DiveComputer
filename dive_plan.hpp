@@ -46,7 +46,7 @@ public:
     // Dive parameters
     bool m_bailout;
     int  m_diveNumber;
-    bool m_boosted;
+    bool m_boosted = true;
     SetPoints m_setPoints;
     double m_mission = 0.0;
 

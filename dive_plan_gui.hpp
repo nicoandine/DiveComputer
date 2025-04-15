@@ -10,7 +10,10 @@
 #include "ui_utils.hpp"
 
 // Forward declaration of MainWindow class
-namespace DiveComputer { class MainWindow; }
+namespace DiveComputer {
+    class MainWindow; 
+    class CompartmentGraphWindow;
+    }
 
 namespace DiveComputer {
 
@@ -87,6 +90,7 @@ protected:
 
 private:
     MainWindow* m_mainWindow;
+    std::unique_ptr<CompartmentGraphWindow> m_compartmentGraphWindow;
 
     // Window size
     const int preferredWidth = 1250;
@@ -131,6 +135,7 @@ private:
     QAction* m_gfBoostedAction;
     QAction* m_maxTimeAction;
     QAction* m_optimiseDecoGasAction;
+    QAction* m_graphCompartmentsAction;
 
     // UI controls
     QTableWidget *stopStepsTable;
@@ -232,6 +237,7 @@ private slots:
     void gfBoostedActionTriggered();
     void setMaxTime();
     void optimiseDecoGas();
+    void graphCompartments();
 
     // Helper methods 
     QString  getPhaseString(Phase phase);

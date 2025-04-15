@@ -3,6 +3,7 @@
 #include "constants.hpp"
 #include "dive_plan_dialog.hpp"
 #include "ui_utils.hpp"
+#include "dive_plan_gui_compartment_graph.hpp"
 
 namespace DiveComputer {
 
@@ -15,9 +16,9 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
       leftPanelSplitter(nullptr),
       topWidgetsSplitter(nullptr),
       verticalSplitter(nullptr),
-      m_gasesColumnsInitialized(false),  // Make sure to initialize
-      m_totalGasesWidth(0)              // Make sure to initialize
-{
+      m_gasesColumnsInitialized(false),
+      m_totalGasesWidth(0){
+
     // Set window title
     setWindowTitle("Dive Plan");
     

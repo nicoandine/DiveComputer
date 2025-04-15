@@ -149,40 +149,8 @@ bool GasList::saveGaslistToFile() {
     }, filename, "Error Saving Gas List");
 }
 
-void GasList::print() {
-    for (const Gas& gas : pImpl->gases) {
-        std::cout << "Gas: " << gas.m_o2Percent << "%, " << gas.m_hePercent << "%" << std::endl;
-    }
-}
-
 const std::vector<Gas>& GasList::getGases() const {
     return pImpl->gases;
-}
-
-std::string GasList::getFilePath(const std::string& filename) {
-    // Use QStandardPaths to get the app data location
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    
-    // Ensure the directory exists
-    QDir dir(appDataPath);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-    
-    // Construct full file path
-    QString fullPath = QDir(appDataPath).filePath(QString::fromStdString(filename));
-    
-    // Convert back to std::string
-    return fullPath.toStdString();
-}
-
-void GasList::ensureAppInfoSet() {
-    // Ensure the application data directory exists
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir dir(appDataPath);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
 }
 
 } // namespace DiveComputer

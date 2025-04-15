@@ -390,7 +390,6 @@ bool DivePlan::enoughGasAvailable(){
 
 void DivePlan::optimiseDecoGas() {
    // placeholder used for testing for now
-   printPlan(m_timeProfile);
 }
 
 double DivePlan::getTTS(){
@@ -951,101 +950,6 @@ void DivePlan::updateRunTimes(){
     for (int i = 1; i < (int) m_diveProfile.size(); i++) {
         m_diveProfile[i].updateRunTime(&m_diveProfile[i - 1]);
     }
-}
-
-// Print-to-terminal functions
-
-void DivePlan::printPlan(std::vector<DiveStep> profile){
-    printf("\nDIVE PROFILE\n\n");
- 
-    // Print the header
-    printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf("|Step| Phase|    Depth   | Ceil |  time /   run | Pamb / ppO2 |   GF  | GFSurf | O2 /  He /  N2  | SAC/ Amb /  Tot |  d  |    END (m)  |   CNS (%%)  | OTU |\n");
-    printf("|  # |      |     (m)    |  (m) |      (min)    |  max (bar)  |       |        |      (%%)        | (L/min)  /  (L) |(g/L)| non O2 / O2 | Dive | Day | min |\n");
-    printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
-
-    for (int i = 0; i < (int) profile.size(); i++){
-        printf("|%3i | ", i);
-        if (profile[i].m_phase == Phase::DESCENDING)          printf("DESC | ");
-        if (profile[i].m_phase == Phase::GAS_SWITCH)          printf("GAS  | ");
-        if (profile[i].m_phase == Phase::STOP)                printf("STOP | ");
-        if (profile[i].m_phase == Phase::DECO)                printf("DECO | ");
-        if (profile[i].m_phase == Phase::ASCENDING)           printf("ASC  | ");
-        if (profile[i].m_phase == Phase::GROUPED_ASCENDING)   printf("ASC* | ");
-        
-        printf("%3.0f -> %3.0f |  %3.0f | %5.1f / %5.1f | %4.1f / %3.2f | %4.0f  |  %4.0f  | %3.0f / %3.0f / %3.0f | %2.0f / %3.0f / %4.0f | %3.1f |   %3.0f / %3.0f |  %3.0f | %3.0f | %3.0f |\n", 
-            profile[i].m_startDepth, profile[i].m_endDepth,
-            profile[i].m_ceiling,
-            profile[i].m_time, profile[i].m_runTime, 
-            profile[i].m_pAmbMax, profile[i].m_pO2Max,
-            profile[i].m_gf, profile[i].m_gfSurface,
-            profile[i].m_o2Percent, profile[i].m_hePercent, profile[i].m_n2Percent, 
-            profile[i].m_sacRate, profile[i].m_ambConsumptionAtDepth, profile[i].m_stepConsumption,
-            profile[i].m_gasDensity, profile[i].m_endWithoutO2, profile[i].m_endWithO2,
-            profile[i].m_cnsTotalSingleDive, profile[i].m_cnsTotalMultipleDives, profile[i].m_otuTotal);
-    }
-
-    printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
-}
-
-void DivePlan::printCompartmentDetails(int compartment){
-    printf("| Step | Comp | Depth | P_amb |   GF  | pp_GF_n2 | pp_n2 | pp_GF_he | pp_he | pp_GF_inert | pp_inert | O2   /   He \n");
-
-    for (int i = 0; i < nbOfSteps(); i++){
-        m_diveProfile[i].printCompartmentDetails(i, compartment);
-    }
-}
-
-void DivePlan::printGF(){
-    for (int i = 0; i < nbOfSteps(); i++){
-        printf("Step: %3i | Depth: %3.0f | GF: %3.0f%%\n", i, m_diveProfile[i].m_endDepth, m_diveProfile[i].m_gf);
-    }
-}
-
-void DivePlan::printO2Exposure(){
-    printf("----------------------------------------------------------------------------------------------------\n");
-    printf("| Step | Time | ppO2_max |  CNS Single |  CNS%% Step |  CNS Daily |  CNS%% Step | OTU/min | OTU Step |\n");
-    printf("----------------------------------------------------------------------------------------------------\n");
-
-    for (int i = 0; i < nbOfSteps(); i++){
-        printf("| %3i  |  %3.0f |   %4.2f   |      %3.0f    |    %5.1f   |     %3.0f    |   %5.1f    |  %4.1f   |    %5.1f |\n", 
-            i, m_diveProfile[i].m_time, m_diveProfile[i].m_pO2Max, 
-            m_diveProfile[i].m_cnsMaxMinSingleDive, m_diveProfile[i].m_cnsStepSingleDive,
-            m_diveProfile[i].m_cnsMaxMinMultipleDives, m_diveProfile[i].m_cnsStepMultipleDives,
-            m_diveProfile[i].m_otuPerMin, m_diveProfile[i].m_otuStep);
-    }
-    printf("----------------------------------------------------------------------------------------------------\n");
-    printf(" Total                                      %5.1f                    %5.1f                   %5.1f\n",
-        m_diveProfile[nbOfSteps() - 1].m_cnsTotalSingleDive, m_diveProfile[nbOfSteps() - 1].m_cnsTotalMultipleDives, 
-        m_diveProfile[nbOfSteps() - 1].m_otuTotal);
-}
-
-void DivePlan::printSummary(){
-    std::pair<double, double> result = getMaxTimeAndTTS();
-
-    std::cout << "Dive Number: " << m_diveNumber << std::endl;
-    
-    std::cout << "GF " << g_parameters.m_gf[0] << " / " << g_parameters.m_gf[1] << std::endl;
-    std::cout << "TTS Target: " << getTTS() << std::endl;
-    std::cout << "TTS Max: " << result.second << " Max Time: " << result.first << std::endl;
-    std::cout << "deltaTTS +5 min: " << getTTSDelta(5) << std::endl;
-    
-    // only if the dive is in OC or CC mode + m_bailout is true
-    if ((m_mode == diveMode::OC || m_mode == diveMode::CC) && m_bailout){
-        std::cout << "AP: " << getAP() << std::endl;
-    }
-
-    // only if m_mission is not 0
-    if (m_mission != 0){
-        std::cout << "Mission: " << m_mission << std::endl;
-        std::cout << "T-TTS: " << getTurnTTS() << std::endl;
-
-        // only if mode is OC
-        if (m_mode == diveMode::OC){
-            std::cout << "TP: " << getTP() << std::endl;
-        }
-    }
-
 }
 
 } // namespace DiveComputer

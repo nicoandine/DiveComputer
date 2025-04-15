@@ -47,12 +47,6 @@ private:
     // Pimpl idiom for implementation details
     class Impl;
     std::unique_ptr<Impl> pImpl;
-
-    // Helper method to ensure app info is set
-    void ensureAppInfoSet();
-    
-    // Get file path for app-specific files
-    std::string getFilePath(const std::string& filename);
 };
 
 // Declare global instance

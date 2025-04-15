@@ -32,7 +32,6 @@ SOURCES += \
     dive_plan_gui_gaslist.cpp \
     dive_plan_gui_setpoints.cpp \
     dive_plan_gui_summary.cpp \
-    placeholder_gui.cpp \
     main_gui.cpp
 
 HEADERS += \
@@ -58,7 +57,6 @@ HEADERS += \
     dive_plan_dialog.hpp \
     dive_plan_gui.hpp \
     dive_plan_gui_compartment_graph.hpp \
-    placeholder_gui.hpp \
     ui_utils.hpp \
     main_gui.hpp
 

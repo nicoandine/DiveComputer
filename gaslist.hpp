@@ -16,9 +16,6 @@ public:
     // Constructor
     GasList();
     
-    // Destructor
-    ~GasList();
-    
     // Add a new gas to the list
     void addGas(double o2Percent, double hePercent, GasType gasType, GasStatus gasStatus);
     
@@ -44,9 +41,7 @@ public:
     const std::vector<Gas>& getGases() const;
 
 private:
-    // Pimpl idiom for implementation details
-    class Impl;
-    std::unique_ptr<Impl> pImpl;
+    std::vector<Gas> m_gases;
 };
 
 // Declare global instance

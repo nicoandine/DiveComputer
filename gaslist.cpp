@@ -2,40 +2,30 @@
 
 namespace DiveComputer {
 
-// Private implementation class
-class GasList::Impl {
-public:
-    std::vector<Gas> gases;
-};
-
 // Define the global GasList instance
 GasList g_gasList;
 
-// Constructor implements Pimpl idiom
-GasList::GasList() : pImpl(std::make_unique<Impl>()) {
+GasList::GasList() {
     // Ensure app info is set before any path operations
     ensureAppInfoSet();
     loadGaslistFromFile();
 }
 
-// Destructor is required when using unique_ptr
-GasList::~GasList() = default;
-
 void GasList::addGas(double o2Percent, double hePercent, GasType gasType, GasStatus gasStatus) {
     Gas gas(o2Percent, hePercent, gasType, gasStatus);
-    pImpl->gases.push_back(gas);
+    m_gases.push_back(gas);
 }
 
 void GasList::editGas(int index, double o2Percent, double hePercent, GasType gasType, GasStatus gasStatus) {
-    pImpl->gases[index] = Gas(o2Percent, hePercent, gasType, gasStatus);
+    m_gases[index] = Gas(o2Percent, hePercent, gasType, gasStatus);
 }
 
 void GasList::deleteGas(int index) {
-    pImpl->gases.erase(pImpl->gases.begin() + index);
+    m_gases.erase(m_gases.begin() + index);
 }
 
 void GasList::clearGaslist() {
-    pImpl->gases.clear();
+    m_gases.clear();
 }
 
 bool GasList::loadGaslistFromFile() {
@@ -49,7 +39,7 @@ bool GasList::loadGaslistFromFile() {
                               ErrorSeverity::INFO);
         
         // Since file doesn't exist, let's add a default gas (21% O2)
-        if (pImpl->gases.empty()) {
+        if (m_gases.empty()) {
             addGas(g_constants.m_oxygenInAir, 0.0, GasType::BOTTOM, GasStatus::ACTIVE);
         }
         
@@ -67,10 +57,10 @@ bool GasList::loadGaslistFromFile() {
         }
         
         // Clear the list, determine the number of gases and reserve space for them
-        pImpl->gases.clear();
+        m_gases.clear();
         size_t gasCount = 0;
         file.read(reinterpret_cast<char*>(&gasCount), sizeof(gasCount));
-        pImpl->gases.reserve(gasCount);
+        m_gases.reserve(gasCount);
         
         // Read each gas
         for (size_t i = 0; i < gasCount; ++i) {
@@ -114,7 +104,7 @@ bool GasList::saveGaslistToFile() {
         }
     
         // First write the number of gases
-        size_t gasCount = pImpl->gases.size();
+        size_t gasCount = m_gases.size();
         file.write(reinterpret_cast<const char*>(&gasCount), sizeof(gasCount));
         
         if (file.fail()) {
@@ -122,7 +112,7 @@ bool GasList::saveGaslistToFile() {
         }
         
         // Then write each gas
-        for (const Gas& gas : pImpl->gases) {
+        for (const Gas& gas : m_gases) {
             file.write(reinterpret_cast<const char*>(&gas.m_o2Percent), sizeof(gas.m_o2Percent));
             file.write(reinterpret_cast<const char*>(&gas.m_hePercent), sizeof(gas.m_hePercent));
             file.write(reinterpret_cast<const char*>(&gas.m_gasType), sizeof(gas.m_gasType));
@@ -150,7 +140,7 @@ bool GasList::saveGaslistToFile() {
 }
 
 const std::vector<Gas>& GasList::getGases() const {
-    return pImpl->gases;
+    return m_gases;
 }
 
 } // namespace DiveComputer

@@ -63,10 +63,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     divePlanAction->setShortcut(QKeySequence("Ctrl+D")); // Ctrl+D (macOS will show as Command+D)
     connect(divePlanAction, SIGNAL(triggered()), this, SLOT(createDivePlan()));
 
-    QAction *placeholderAction = new QAction("Placeholder", this);
-    placeholderAction->setShortcut(QKeySequence("Ctrl+P")); // Ctrl+P (macOS will show as Command+P)
-    connect(placeholderAction, SIGNAL(triggered()), this, SLOT(openPlaceholderWindow()));
-
     // Create Tools menu
     QMenu *toolsMenu = QMainWindow::menuBar()->addMenu("Tools");
     
@@ -74,7 +70,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     toolsMenu->addAction(parametersAction);
     toolsMenu->addAction(gasMixesAction);
     toolsMenu->addAction(divePlanAction);
-    toolsMenu->addAction(placeholderAction);
     
     // Create a permanent Diveplanning menu (initially disabled)
     divePlanningMenu = QMainWindow::menuBar()->addMenu("Diveplanning");
@@ -176,10 +171,6 @@ void MainWindow::openParameterWindow() {
     openWindow<ParameterWindow>(&parameterWindow);
 }
 
-void MainWindow::openPlaceholderWindow() {
-    openWindow<PlaceholderWindow>(&placeholderWindow);
-}
-
 void MainWindow::handleWindowDestroyed() {
     QObject* obj = sender();
     if (obj) {
@@ -189,7 +180,6 @@ void MainWindow::handleWindowDestroyed() {
         // Will need to manually check which window was destroyed
         if (gasListWindow == obj) gasListWindow = nullptr;
         else if (parameterWindow == obj) parameterWindow = nullptr;
-        else if (placeholderWindow == obj) placeholderWindow = nullptr;
     }
 }
 

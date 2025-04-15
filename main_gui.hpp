@@ -3,7 +3,6 @@
 
 #include "qtheaders.hpp"
 #include "parameters_gui.hpp"
-#include "placeholder_gui.hpp"
 #include "gaslist_gui.hpp"
 #include "dive_plan_gui.hpp"
 
@@ -53,7 +52,6 @@ private:
     QLabel *mainLabel;
     QLabel *logoLabel; // New label for logo
     ParameterWindow *parameterWindow = nullptr;
-    PlaceholderWindow *placeholderWindow = nullptr;
     GasListWindow *gasListWindow = nullptr;
     QList<QWidget*> *childWindows; // List to track all windows we create
 
@@ -66,7 +64,6 @@ private slots:
     void openGasListWindow();
     void handleWindowDestroyed();
     void openParameterWindow();
-    void openPlaceholderWindow();
     void handleDivePlanWindowDestroyed();
 };
 

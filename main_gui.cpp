@@ -58,10 +58,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     gasMixesAction->setShortcut(QKeySequence("Ctrl+G")); // Ctrl+G (macOS will show as Command+G)
     connect(gasMixesAction, SIGNAL(triggered()), this, SLOT(openGasListWindow()));
 
+    // Open dive plan action with Command+O shortcut
+    QAction *openDivePlanAction = new QAction("Open a dive plan", this);
+    openDivePlanAction->setShortcut(QKeySequence("Ctrl+O")); // Ctrl+O (macOS will show as Command+O)
+    connect(openDivePlanAction, SIGNAL(triggered()), this, SLOT(openDivePlan()));
+
     // Create dive plan action with Command+D shortcut
-    QAction *divePlanAction = new QAction("Create a dive plan", this);
-    divePlanAction->setShortcut(QKeySequence("Ctrl+D")); // Ctrl+D (macOS will show as Command+D)
-    connect(divePlanAction, SIGNAL(triggered()), this, SLOT(createDivePlan()));
+    QAction *createDivePlanAction = new QAction("Create a dive plan", this);
+    createDivePlanAction->setShortcut(QKeySequence("Ctrl+D")); // Ctrl+D (macOS will show as Command+D)
+    connect(createDivePlanAction, SIGNAL(triggered()), this, SLOT(createDivePlan()));
 
     // Create view log action with Command+L shortcut
     QAction *viewLogAction = new QAction("View the log", this);
@@ -74,7 +79,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     // Add actions to tools menu
     toolsMenu->addAction(parametersAction);
     toolsMenu->addAction(gasMixesAction);
-    toolsMenu->addAction(divePlanAction);
+    toolsMenu->addAction(openDivePlanAction);
+    toolsMenu->addAction(createDivePlanAction);
     toolsMenu->addSeparator();
     toolsMenu->addAction(viewLogAction);
     
@@ -120,6 +126,10 @@ void MainWindow::createDivePlan() {
         // Activate with menu
         activateWindowWithMenu(divePlanWindow);
     }
+}
+
+void MainWindow::openDivePlan() {
+    printf("OPEN DIVE PLAN\n"); // PLACEHOLDER
 }
 
 void MainWindow::openGasListWindow() {

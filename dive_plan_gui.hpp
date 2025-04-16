@@ -138,7 +138,8 @@ private:
     QAction* m_optimiseDecoGasAction;
     QAction* m_graphCompartmentsAction;
     QAction* m_planConsecutiveDiveAction;
-
+    QAction* m_saveDiveAction;
+    
     // UI controls
     QTableWidget *stopStepsTable;
     QTableWidget *setpointsTable;
@@ -242,6 +243,7 @@ private slots:
     void optimiseDecoGas();
     void graphCompartments();
     void planConsecutiveDive();
+    void saveDive();
 
     // Helper methods 
     QString  getPhaseString(Phase phase);

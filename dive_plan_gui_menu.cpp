@@ -62,6 +62,13 @@ void DivePlanWindow::setupMenu() {
     connect(m_planConsecutiveDiveAction, &QAction::triggered, this, &DivePlanWindow::planConsecutiveDive);
     m_divePlanningMenu->addAction(m_planConsecutiveDiveAction);
 
+    // Save dive
+    m_saveDiveAction = new QAction("Save dive", this);
+    m_saveDiveAction->setVisible(true);
+    m_saveDiveAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
+    connect(m_saveDiveAction, &QAction::triggered, this, &DivePlanWindow::saveDive);
+    m_divePlanningMenu->addAction(m_saveDiveAction);
+
     // Graph compartments
     m_graphCompartmentsAction = new QAction("Graph compartments", this);
     m_graphCompartmentsAction->setVisible(true);
@@ -221,6 +228,10 @@ void DivePlanWindow::graphCompartments() {
 
 void DivePlanWindow::planConsecutiveDive() {
     printf("PLAN NEXT DIVE\n");
+}
+
+void DivePlanWindow::saveDive() {
+    printf("SAVE DIVE\n");
 }
 
 } // namespace DiveComputer

@@ -62,6 +62,7 @@ private:
 
 private slots:
     void createDivePlan();
+    void openDivePlan();
     void openGasListWindow();
     void openParameterWindow();
     void viewLogWindow();

@@ -66,6 +66,7 @@ public:
     std::vector<CompartmentPP> m_initialPressure;
 
     // Core methods
+    int  nbOfSteps();
     void loadAvailableGases();
     void buildDivePlan();
     void calculateDivePlan(bool printLog = true);
@@ -73,8 +74,6 @@ public:
     void calculateGasConsumption(bool printLog = true);
     void calculateOtherVariables(double GF, bool printLog = true);
     void calculateTimeProfile(bool printLog = true);
-
-    int  nbOfSteps();
 
     // Action methods
     std::pair<double, double> getMaxTimeAndTTS();
@@ -93,8 +92,15 @@ public:
     void printO2Exposure();
     void printSummary();
 
+    // Save and load dive plan
+    bool saveDiveToFile(const std::string& filePath);
+    static std::unique_ptr<DivePlan> loadDiveFromFile(const std::string& filePath);
+    std::string getFilePath() const { return m_filePath; }
+    void setFilePath(const std::string& path) { m_filePath = path; }
+
 private:
     double m_firstDecoDepth;
+    std::string m_filePath;  // Store the file path for reloading
 
     // Helper methods
     void   clear();

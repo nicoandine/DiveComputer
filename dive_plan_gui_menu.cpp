@@ -66,7 +66,7 @@ void DivePlanWindow::setupMenu() {
     m_saveDiveAction = new QAction("Save dive", this);
     m_saveDiveAction->setVisible(true);
     m_saveDiveAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
-    connect(m_saveDiveAction, &QAction::triggered, this, &DivePlanWindow::saveDive);
+    connect(m_saveDiveAction, &QAction::triggered, this, &DivePlanWindow::saveDivePlan);
     m_divePlanningMenu->addAction(m_saveDiveAction);
 
     // Graph compartments
@@ -178,7 +178,6 @@ void DivePlanWindow::gfBoostedActionTriggered() {
 
 void DivePlanWindow::setMaxTime() {
     std::pair<double, double> result = m_divePlan->getMaxTimeAndTTS();
-    logWrite("Max Time: ", result.first, " Max TTS: ", result.second);
 
     // find the first stop step
     int firstStopIndex = 0;
@@ -230,8 +229,45 @@ void DivePlanWindow::planConsecutiveDive() {
     printf("PLAN NEXT DIVE\n");
 }
 
-void DivePlanWindow::saveDive() {
-    printf("SAVE DIVE\n");
+void DivePlanWindow::saveDivePlan() {
+    // Create a file dialog for saving dive plan files
+    QString filter = "Dive Plan Files (*.dive);;All Files (*)";
+    QString filePath = QFileDialog::getSaveFileName(
+        this,
+        "Save Dive Plan",
+        QDir::homePath() + "/dive_plan.dive",  // Default filename
+        filter
+    );
+    
+    // Check if user canceled the dialog
+    if (filePath.isEmpty()) {
+        return;
+    }
+    
+    // Add .dive extension if not present
+    if (!filePath.endsWith(".dive", Qt::CaseInsensitive)) {
+        filePath += ".dive";
+    }
+    
+    // Show progress dialog
+    showProgressDialog("Saving dive plan...");
+    
+    // Perform save operation
+    bool success = m_divePlan->saveDiveToFile(filePath.toStdString());
+    
+    // Close progress dialog if it's visible
+    if (m_progressDialog && m_progressDialog->isVisible()) {
+        m_progressDialog->close();
+    }
+    
+    // Inform user of result
+    if (!success) {
+        QMessageBox::critical(this, "Error", "Failed to save dive plan to file.");
+    } else {
+        // Update window title to include filename
+        QFileInfo fileInfo(filePath);
+        setWindowTitle("Dive Plan - " + fileInfo.fileName());
+    }
 }
 
 } // namespace DiveComputer

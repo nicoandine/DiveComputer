@@ -79,6 +79,7 @@ class DivePlanWindow : public QMainWindow {
     
 public:
     DivePlanWindow(double depth, double bottomTime, diveMode mode, QWidget *parent = nullptr);
+    DivePlanWindow(std::unique_ptr<DivePlan> loadedPlan, QWidget *parent = nullptr);
     ~DivePlanWindow() override;
 
     void setDivePlanningMenu(QMenu* menu);
@@ -139,7 +140,7 @@ private:
     QAction* m_graphCompartmentsAction;
     QAction* m_planConsecutiveDiveAction;
     QAction* m_saveDiveAction;
-    
+
     // UI controls
     QTableWidget *stopStepsTable;
     QTableWidget *setpointsTable;
@@ -243,7 +244,7 @@ private slots:
     void optimiseDecoGas();
     void graphCompartments();
     void planConsecutiveDive();
-    void saveDive();
+    void saveDivePlan();
 
     // Helper methods 
     QString  getPhaseString(Phase phase);

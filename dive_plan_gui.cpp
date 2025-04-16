@@ -68,6 +68,48 @@ DivePlanWindow::DivePlanWindow(double depth, double bottomTime, diveMode mode, Q
     QTimer::singleShot(200, this, &DivePlanWindow::resizeGasesTable);
 }
 
+DivePlanWindow::DivePlanWindow(std::unique_ptr<DivePlan> loadedPlan, QWidget *parent)
+    : QMainWindow(parent), 
+      m_mainWindow(qobject_cast<MainWindow*>(parent)),
+      leftPanelSplitter(nullptr),
+      topWidgetsSplitter(nullptr),
+      verticalSplitter(nullptr),
+      m_gasesColumnsInitialized(false),
+      m_totalGasesWidth(0) {
+          
+    // Set window title
+    QFileInfo fileInfo(QString::fromStdString(loadedPlan->getFilePath()));
+    setWindowTitle("Dive Plan - " + fileInfo.fileName());
+    
+    // Store the loaded dive plan
+    m_divePlan = std::move(loadedPlan);
+    
+    // Set up UI
+    setupUI();
+
+    // Initial refresh of widgets
+    refreshWindow();
+    
+    // Update setpoint visibility based on current mode
+    updateSetpointVisibility();
+    
+    // First attempt at forcing gas table column sizes
+    resizeGasesTable();
+    
+    // Use the common window sizing and positioning function
+    setWindowSizeAndPosition(this, preferredWidth, preferredHeight, WindowPosition::CENTER);
+    
+    // Try again after positioning
+    resizeGasesTable();
+    
+    // Add event handler for window shown event to force column widths
+    // after window is completely shown and sized
+    connect(this, &QWidget::windowTitleChanged, this, &DivePlanWindow::onWindowTitleChanged);
+    
+    // As a last resort, use a timer that triggers after window is fully shown
+    QTimer::singleShot(200, this, &DivePlanWindow::resizeGasesTable);
+}
+
 DivePlanWindow::~DivePlanWindow() {}
 
 void DivePlanWindow::refreshWindow(){

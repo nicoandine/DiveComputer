@@ -333,52 +333,6 @@ void DivePlan::clearDecoSteps(){
     }
 }
 
-std::pair<double, double> DivePlan::getMaxTimeAndTTS() {       
-    // Log performance
-    QElapsedTimer timer;
-    timer.start();
-
-    DivePlan tempDivePlan = *this;
-    double maxTime = 0.0, maxTTS = 0.0;
-
-    // find the first STOP step
-    int firstStopIndex = 0;
-
-    for (int i = 1; i < nbOfSteps(); i++){
-        if (tempDivePlan.m_diveProfile[i].m_phase == Phase::STOP){
-            tempDivePlan.m_diveProfile[i].m_time = 0.0;
-            firstStopIndex = i;
-            break;
-        }
-    }
-
-    // Recalculate the dive plan
-    tempDivePlan.calculateDivePlan(false);
-    tempDivePlan.calculateGasConsumption(false);
-
-    // Check if 0 of bottom time is enough gas available
-    if(!tempDivePlan.enoughGasAvailable()){
-        return std::make_pair(0.0, 0.0);
-    }
-
-    // iterate the time of the bottom phase until the gas is not enough
-    while(tempDivePlan.enoughGasAvailable()){
-        tempDivePlan.m_diveProfile[firstStopIndex].m_time += g_parameters.m_timeIncrementMaxTime;
-        tempDivePlan.calculateDivePlan(false);
-        tempDivePlan.calculateGasConsumption(false);
-    }
-
-    tempDivePlan.m_diveProfile[firstStopIndex].m_time -= g_parameters.m_timeIncrementMaxTime;
-    maxTime = std::max(0.0, tempDivePlan.m_diveProfile[firstStopIndex].m_time);
-    tempDivePlan.calculateDivePlan(false);
-    maxTTS = tempDivePlan.getTTS();
-
-    // Monitor performance
-    logWrite("DivePlan::getMaxTimeAndTTS() took ", timer.elapsed(), " ms");
-
-    return std::make_pair(maxTime, maxTTS);
-}
-
 bool DivePlan::enoughGasAvailable(){
     for (auto& gas : m_gasAvailable){
         if (gas.m_endPressure < gas.m_reservePressure){
@@ -443,6 +397,52 @@ double DivePlan::getTTSDelta(double incrementTime){
     logWrite("DivePlan::getTTSDelta() took ", timer.elapsed(), " ms");
 
     return tempDivePlan.getTTS() - getTTS();
+}
+
+std::pair<double, double> DivePlan::getMaxTimeAndTTS() {       
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
+    DivePlan tempDivePlan = *this;
+    double maxTime = 0.0, maxTTS = 0.0;
+
+    // find the first STOP step
+    int firstStopIndex = 0;
+
+    for (int i = 1; i < nbOfSteps(); i++){
+        if (tempDivePlan.m_diveProfile[i].m_phase == Phase::STOP){
+            tempDivePlan.m_diveProfile[i].m_time = 0.0;
+            firstStopIndex = i;
+            break;
+        }
+    }
+
+    // Recalculate the dive plan
+    tempDivePlan.calculateDivePlan(false);
+    tempDivePlan.calculateGasConsumption(false);
+
+    // Check if 0 of bottom time is enough gas available
+    if(!tempDivePlan.enoughGasAvailable()){
+        return std::make_pair(0.0, 0.0);
+    }
+
+    // iterate the time of the bottom phase until the gas is not enough
+    while(tempDivePlan.enoughGasAvailable()){
+        tempDivePlan.m_diveProfile[firstStopIndex].m_time += g_parameters.m_timeIncrementMaxTime;
+        tempDivePlan.calculateDivePlan(false);
+        tempDivePlan.calculateGasConsumption(false);
+    }
+
+    tempDivePlan.m_diveProfile[firstStopIndex].m_time -= g_parameters.m_timeIncrementMaxTime;
+    maxTime = std::max(0.0, tempDivePlan.m_diveProfile[firstStopIndex].m_time);
+    tempDivePlan.calculateDivePlan(false);
+    maxTTS = tempDivePlan.getTTS();
+
+    // Monitor performance
+    logWrite("DivePlan::getMaxTimeAndTTS() took ", timer.elapsed(), " ms");
+
+    return std::make_pair(maxTime, maxTTS);
 }
 
 // Function to calculate the turn pressure
@@ -998,6 +998,526 @@ void DivePlan::updateRunTimes(){
     for (int i = 1; i < (int) m_diveProfile.size(); i++) {
         m_diveProfile[i].updateRunTime(&m_diveProfile[i - 1]);
     }
+}
+
+// Save and load dive plan
+bool DivePlan::saveDiveToFile(const std::string& filePath) {
+    bool result = ErrorHandler::tryFileOperation([&]() {
+        // Log performance
+        QElapsedTimer timer;
+        timer.start();
+
+        std::ofstream file(filePath, std::ios::binary);
+        if (!file.is_open()) {
+            logWrite("Failed to open file for writing: ", filePath);
+            return;
+        }
+
+        // Write a version identifier for future compatibility
+        uint32_t fileVersion = 1;
+        file.write(reinterpret_cast<const char*>(&fileVersion), sizeof(fileVersion));
+
+        // Save basic dive parameters
+        file.write(reinterpret_cast<const char*>(&m_mode), sizeof(m_mode));
+        file.write(reinterpret_cast<const char*>(&m_bailout), sizeof(m_bailout));
+        file.write(reinterpret_cast<const char*>(&m_diveNumber), sizeof(m_diveNumber));
+        file.write(reinterpret_cast<const char*>(&m_boosted), sizeof(m_boosted));
+        file.write(reinterpret_cast<const char*>(&m_mission), sizeof(m_mission));
+        file.write(reinterpret_cast<const char*>(&m_firstDecoDepth), sizeof(m_firstDecoDepth));
+        
+        // Save summary values
+        file.write(reinterpret_cast<const char*>(&m_tts), sizeof(m_tts));
+        file.write(reinterpret_cast<const char*>(&m_ttsDelta), sizeof(m_ttsDelta));
+        file.write(reinterpret_cast<const char*>(&m_ap), sizeof(m_ap));
+        file.write(reinterpret_cast<const char*>(&m_maxResult.first), sizeof(m_maxResult.first));
+        file.write(reinterpret_cast<const char*>(&m_maxResult.second), sizeof(m_maxResult.second));
+        file.write(reinterpret_cast<const char*>(&m_tp), sizeof(m_tp));
+        file.write(reinterpret_cast<const char*>(&m_turnTts), sizeof(m_turnTts));
+
+        // Save StopSteps
+        size_t stopStepsCount = m_stopSteps.m_stopSteps.size();
+        file.write(reinterpret_cast<const char*>(&stopStepsCount), sizeof(stopStepsCount));
+        for (const auto& stopStep : m_stopSteps.m_stopSteps) {
+            file.write(reinterpret_cast<const char*>(&stopStep.m_depth), sizeof(stopStep.m_depth));
+            file.write(reinterpret_cast<const char*>(&stopStep.m_time), sizeof(stopStep.m_time));
+        }
+
+        // Save SetPoints
+        size_t setPointsCount = m_setPoints.m_depths.size();
+        file.write(reinterpret_cast<const char*>(&setPointsCount), sizeof(setPointsCount));
+        for (size_t i = 0; i < setPointsCount; ++i) {
+            file.write(reinterpret_cast<const char*>(&m_setPoints.m_depths[i]), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&m_setPoints.m_setPoints[i]), sizeof(double));
+        }
+
+        // Save available gases
+        size_t gasCount = m_gasAvailable.size();
+        file.write(reinterpret_cast<const char*>(&gasCount), sizeof(gasCount));
+        for (const auto& gas : m_gasAvailable) {
+            // Save Gas properties
+            file.write(reinterpret_cast<const char*>(&gas.m_gas.m_o2Percent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_gas.m_hePercent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_gas.m_gasType), sizeof(GasType));
+            file.write(reinterpret_cast<const char*>(&gas.m_gas.m_gasStatus), sizeof(GasStatus));
+            
+            // Save GasAvailable properties
+            file.write(reinterpret_cast<const char*>(&gas.m_switchDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_switchPpO2), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_nbTanks), sizeof(int));
+            file.write(reinterpret_cast<const char*>(&gas.m_tankCapacity), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_fillingPressure), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_reservePressure), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_consumption), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&gas.m_endPressure), sizeof(double));
+        }
+
+        // Save initial pressure
+        size_t initialPressureCount = m_initialPressure.size();
+        file.write(reinterpret_cast<const char*>(&initialPressureCount), sizeof(initialPressureCount));
+        for (const auto& pressure : m_initialPressure) {
+            file.write(reinterpret_cast<const char*>(&pressure.m_pN2), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&pressure.m_pHe), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&pressure.m_pInert), sizeof(double));
+        }
+
+        // Save GF values (that might have been modified in the summary widget)
+        file.write(reinterpret_cast<const char*>(&g_parameters.m_gf), sizeof(g_parameters.m_gf));
+
+        // Save dive profile
+        size_t profileCount = m_diveProfile.size();
+        file.write(reinterpret_cast<const char*>(&profileCount), sizeof(profileCount));
+        for (const auto& step : m_diveProfile) {
+            // Basic step properties
+            file.write(reinterpret_cast<const char*>(&step.m_phase), sizeof(Phase));
+            file.write(reinterpret_cast<const char*>(&step.m_mode), sizeof(stepMode));
+            file.write(reinterpret_cast<const char*>(&step.m_startDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_endDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_time), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_runTime), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pAmbStartDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pAmbEndDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pAmbMax), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pO2Max), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_o2Percent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_n2Percent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_hePercent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_gf), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_gfSurface), sizeof(double));
+            
+            // Save compartment data for each step
+            for (const auto& pp : step.m_ppMax) {
+                file.write(reinterpret_cast<const char*>(&pp.m_pN2), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pHe), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (const auto& pp : step.m_ppMaxAdjustedGF) {
+                file.write(reinterpret_cast<const char*>(&pp.m_pN2), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pHe), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (const auto& pp : step.m_ppActual) {
+                file.write(reinterpret_cast<const char*>(&pp.m_pN2), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pHe), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            // Consumption and other metrics
+            file.write(reinterpret_cast<const char*>(&step.m_sacRate), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_ambConsumptionAtDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_stepConsumption), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_gasDensity), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_endWithoutO2), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_endWithO2), sizeof(double));
+            
+            // Oxygen toxicity metrics
+            file.write(reinterpret_cast<const char*>(&step.m_cnsMaxMinSingleDive), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsStepSingleDive), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsTotalSingleDive), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsMaxMinMultipleDives), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsStepMultipleDives), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsTotalMultipleDives), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_otuPerMin), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_otuStep), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_otuTotal), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_ceiling), sizeof(double));
+        }
+
+        // Save time profile
+        size_t timeProfileCount = m_timeProfile.size();
+        file.write(reinterpret_cast<const char*>(&timeProfileCount), sizeof(timeProfileCount));
+        for (const auto& step : m_timeProfile) {
+            // Basic step properties
+            file.write(reinterpret_cast<const char*>(&step.m_phase), sizeof(Phase));
+            file.write(reinterpret_cast<const char*>(&step.m_mode), sizeof(stepMode));
+            file.write(reinterpret_cast<const char*>(&step.m_startDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_endDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_time), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_runTime), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pAmbStartDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pAmbEndDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pAmbMax), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_pO2Max), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_o2Percent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_n2Percent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_hePercent), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_gf), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_gfSurface), sizeof(double));
+            
+            // Save compartment data for each step
+            for (const auto& pp : step.m_ppMax) {
+                file.write(reinterpret_cast<const char*>(&pp.m_pN2), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pHe), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (const auto& pp : step.m_ppMaxAdjustedGF) {
+                file.write(reinterpret_cast<const char*>(&pp.m_pN2), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pHe), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (const auto& pp : step.m_ppActual) {
+                file.write(reinterpret_cast<const char*>(&pp.m_pN2), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pHe), sizeof(double));
+                file.write(reinterpret_cast<const char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            // Consumption and other metrics
+            file.write(reinterpret_cast<const char*>(&step.m_sacRate), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_ambConsumptionAtDepth), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_stepConsumption), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_gasDensity), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_endWithoutO2), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_endWithO2), sizeof(double));
+            
+            // Oxygen toxicity metrics
+            file.write(reinterpret_cast<const char*>(&step.m_cnsMaxMinSingleDive), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsStepSingleDive), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsTotalSingleDive), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsMaxMinMultipleDives), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsStepMultipleDives), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_cnsTotalMultipleDives), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_otuPerMin), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_otuStep), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_otuTotal), sizeof(double));
+            file.write(reinterpret_cast<const char*>(&step.m_ceiling), sizeof(double));
+        }
+
+        file.close();
+        logWrite("Dive plan saved successfully in ", timer.elapsed(), " ms to ", filePath);
+    }, filePath, "Error Saving Dive Plan");
+
+    if (result) {
+        m_filePath = filePath;
+    }
+    
+    return result;
+}
+
+std::unique_ptr<DivePlan> DivePlan::loadDiveFromFile(const std::string& filePath) {
+    std::unique_ptr<DivePlan> loadedPlan = nullptr;
+    
+    bool success = ErrorHandler::tryFileOperation([&]() {
+        // Log performance
+        QElapsedTimer timer;
+        timer.start();
+
+        std::ifstream file(filePath, std::ios::binary);
+        if (!file.is_open()) {
+            logWrite("Failed to open file for reading: ", filePath);
+            return;
+        }
+
+        // Read version identifier
+        uint32_t fileVersion;
+        file.read(reinterpret_cast<char*>(&fileVersion), sizeof(fileVersion));
+
+        if (fileVersion != 1) {
+            logWrite("Unsupported file version: ", fileVersion);
+            return;
+        }
+
+        // Read basic parameters
+        diveMode mode;
+        bool bailout;
+        int diveNumber;
+        bool boosted;
+        double mission;
+        double firstDecoDepth;
+        
+        file.read(reinterpret_cast<char*>(&mode), sizeof(mode));
+        file.read(reinterpret_cast<char*>(&bailout), sizeof(bailout));
+        file.read(reinterpret_cast<char*>(&diveNumber), sizeof(diveNumber));
+        file.read(reinterpret_cast<char*>(&boosted), sizeof(boosted));
+        file.read(reinterpret_cast<char*>(&mission), sizeof(mission));
+        file.read(reinterpret_cast<char*>(&firstDecoDepth), sizeof(firstDecoDepth));
+
+        // Read summary values (we'll set these after loading everything else)
+        double tts, ttsDelta, ap, maxTimeResult, maxTTSResult, tp, turnTts;
+        file.read(reinterpret_cast<char*>(&tts), sizeof(tts));
+        file.read(reinterpret_cast<char*>(&ttsDelta), sizeof(ttsDelta));
+        file.read(reinterpret_cast<char*>(&ap), sizeof(ap));
+        file.read(reinterpret_cast<char*>(&maxTimeResult), sizeof(maxTimeResult));
+        file.read(reinterpret_cast<char*>(&maxTTSResult), sizeof(maxTTSResult));
+        file.read(reinterpret_cast<char*>(&tp), sizeof(tp));
+        file.read(reinterpret_cast<char*>(&turnTts), sizeof(turnTts));
+
+        // Read StopSteps
+        StopSteps stopSteps;
+        size_t stopStepsCount;
+        file.read(reinterpret_cast<char*>(&stopStepsCount), sizeof(stopStepsCount));
+        for (size_t i = 0; i < stopStepsCount; ++i) {
+            double depth, time;
+            file.read(reinterpret_cast<char*>(&depth), sizeof(depth));
+            file.read(reinterpret_cast<char*>(&time), sizeof(time));
+            stopSteps.addStopStep(depth, time);
+        }
+
+        // Read SetPoints
+        SetPoints setPoints;
+        size_t setPointsCount;
+        file.read(reinterpret_cast<char*>(&setPointsCount), sizeof(setPointsCount));
+        setPoints.m_depths.clear();
+        setPoints.m_setPoints.clear();
+        for (size_t i = 0; i < setPointsCount; ++i) {
+            double depth, setPoint;
+            file.read(reinterpret_cast<char*>(&depth), sizeof(depth));
+            file.read(reinterpret_cast<char*>(&setPoint), sizeof(setPoint));
+            setPoints.m_depths.push_back(depth);
+            setPoints.m_setPoints.push_back(setPoint);
+        }
+        setPoints.sortSetPoints();
+
+        // Read available gases
+        std::vector<GasAvailable> gasAvailable;
+        size_t gasCount;
+        file.read(reinterpret_cast<char*>(&gasCount), sizeof(gasCount));
+        for (size_t i = 0; i < gasCount; ++i) {
+            double o2Percent, hePercent;
+            GasType gasType;
+            GasStatus gasStatus;
+            
+            // Read Gas properties
+            file.read(reinterpret_cast<char*>(&o2Percent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&hePercent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&gasType), sizeof(GasType));
+            file.read(reinterpret_cast<char*>(&gasStatus), sizeof(GasStatus));
+            
+            // Create Gas object and GasAvailable object
+            Gas gas(o2Percent, hePercent, gasType, gasStatus);
+            GasAvailable gasObj(gas);
+            
+            // Read GasAvailable properties
+            file.read(reinterpret_cast<char*>(&gasObj.m_switchDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&gasObj.m_switchPpO2), sizeof(double));
+            file.read(reinterpret_cast<char*>(&gasObj.m_nbTanks), sizeof(int));
+            file.read(reinterpret_cast<char*>(&gasObj.m_tankCapacity), sizeof(double));
+            file.read(reinterpret_cast<char*>(&gasObj.m_fillingPressure), sizeof(double));
+            file.read(reinterpret_cast<char*>(&gasObj.m_reservePressure), sizeof(double));
+            file.read(reinterpret_cast<char*>(&gasObj.m_consumption), sizeof(double));
+            file.read(reinterpret_cast<char*>(&gasObj.m_endPressure), sizeof(double));
+            
+            gasAvailable.push_back(gasObj);
+        }
+
+        // Read initial pressure
+        std::vector<CompartmentPP> initialPressure;
+        size_t initialPressureCount;
+        file.read(reinterpret_cast<char*>(&initialPressureCount), sizeof(initialPressureCount));
+        for (size_t i = 0; i < initialPressureCount; ++i) {
+            double pN2, pHe, pInert;
+            file.read(reinterpret_cast<char*>(&pN2), sizeof(double));
+            file.read(reinterpret_cast<char*>(&pHe), sizeof(double));
+            file.read(reinterpret_cast<char*>(&pInert), sizeof(double));
+            initialPressure.push_back(CompartmentPP(pN2, pHe, pInert));
+        }
+
+        // Read saved GF values
+        double savedGF[2];
+        file.read(reinterpret_cast<char*>(&savedGF), sizeof(savedGF));
+        g_parameters.m_gf[0] = savedGF[0];
+        g_parameters.m_gf[1] = savedGF[1];
+
+        // Now we have enough information to create a new DivePlan object
+        // Get the first stop step's depth and time for the constructor
+        double depth = 0.0, time = 0.0;
+        if (!stopSteps.m_stopSteps.empty()) {
+            depth = stopSteps.m_stopSteps[0].m_depth;
+            time = stopSteps.m_stopSteps[0].m_time;
+        }
+        
+        loadedPlan = std::make_unique<DivePlan>(depth, time, mode, diveNumber, initialPressure);
+        loadedPlan->m_bailout = bailout;
+        loadedPlan->m_boosted = boosted;
+        loadedPlan->m_mission = mission;
+        loadedPlan->m_firstDecoDepth = firstDecoDepth;
+        
+        // Set summary values
+        loadedPlan->m_tts = tts;
+        loadedPlan->m_ttsDelta = ttsDelta;
+        loadedPlan->m_ap = ap;
+        loadedPlan->m_maxResult = std::make_pair(maxTimeResult, maxTTSResult);
+        loadedPlan->m_tp = tp;
+        loadedPlan->m_turnTts = turnTts;
+        
+        // Replace the automatically created stop steps with our loaded ones
+        loadedPlan->m_stopSteps = stopSteps;
+        
+        // Replace the setpoints with our loaded ones
+        loadedPlan->m_setPoints = setPoints;
+        
+        // Replace the gas list with our loaded one
+        loadedPlan->m_gasAvailable = gasAvailable;
+        
+        // Replace the initial pressure with our loaded one
+        loadedPlan->m_initialPressure = initialPressure;
+        
+        // Clear the automatically created dive profile
+        loadedPlan->m_diveProfile.clear();
+        
+        // Read dive profile
+        size_t profileCount;
+        file.read(reinterpret_cast<char*>(&profileCount), sizeof(profileCount));
+        for (size_t i = 0; i < profileCount; ++i) {
+            DiveStep step;
+            
+            // Read basic step properties
+            file.read(reinterpret_cast<char*>(&step.m_phase), sizeof(Phase));
+            file.read(reinterpret_cast<char*>(&step.m_mode), sizeof(stepMode));
+            file.read(reinterpret_cast<char*>(&step.m_startDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_endDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_time), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_runTime), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pAmbStartDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pAmbEndDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pAmbMax), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pO2Max), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_o2Percent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_n2Percent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_hePercent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_gf), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_gfSurface), sizeof(double));
+            
+            // Read compartment data
+            for (auto& pp : step.m_ppMax) {
+                file.read(reinterpret_cast<char*>(&pp.m_pN2), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pHe), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (auto& pp : step.m_ppMaxAdjustedGF) {
+                file.read(reinterpret_cast<char*>(&pp.m_pN2), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pHe), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (auto& pp : step.m_ppActual) {
+                file.read(reinterpret_cast<char*>(&pp.m_pN2), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pHe), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            // Read consumption and other metrics
+            file.read(reinterpret_cast<char*>(&step.m_sacRate), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_ambConsumptionAtDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_stepConsumption), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_gasDensity), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_endWithoutO2), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_endWithO2), sizeof(double));
+            
+            // Read oxygen toxicity metrics
+            file.read(reinterpret_cast<char*>(&step.m_cnsMaxMinSingleDive), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsStepSingleDive), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsTotalSingleDive), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsMaxMinMultipleDives), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsStepMultipleDives), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsTotalMultipleDives), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_otuPerMin), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_otuStep), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_otuTotal), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_ceiling), sizeof(double));
+            
+            loadedPlan->m_diveProfile.push_back(step);
+        }
+
+        // Read time profile
+        loadedPlan->m_timeProfile.clear();
+        size_t timeProfileCount;
+        file.read(reinterpret_cast<char*>(&timeProfileCount), sizeof(timeProfileCount));
+        for (size_t i = 0; i < timeProfileCount; ++i) {
+            DiveStep step;
+            
+            // Read basic step properties
+            file.read(reinterpret_cast<char*>(&step.m_phase), sizeof(Phase));
+            file.read(reinterpret_cast<char*>(&step.m_mode), sizeof(stepMode));
+            file.read(reinterpret_cast<char*>(&step.m_startDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_endDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_time), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_runTime), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pAmbStartDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pAmbEndDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pAmbMax), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_pO2Max), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_o2Percent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_n2Percent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_hePercent), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_gf), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_gfSurface), sizeof(double));
+            
+            // Read compartment data
+            for (auto& pp : step.m_ppMax) {
+                file.read(reinterpret_cast<char*>(&pp.m_pN2), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pHe), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (auto& pp : step.m_ppMaxAdjustedGF) {
+                file.read(reinterpret_cast<char*>(&pp.m_pN2), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pHe), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            for (auto& pp : step.m_ppActual) {
+                file.read(reinterpret_cast<char*>(&pp.m_pN2), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pHe), sizeof(double));
+                file.read(reinterpret_cast<char*>(&pp.m_pInert), sizeof(double));
+            }
+            
+            // Read consumption and other metrics
+            file.read(reinterpret_cast<char*>(&step.m_sacRate), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_ambConsumptionAtDepth), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_stepConsumption), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_gasDensity), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_endWithoutO2), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_endWithO2), sizeof(double));
+            
+            // Read oxygen toxicity metrics
+            file.read(reinterpret_cast<char*>(&step.m_cnsMaxMinSingleDive), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsStepSingleDive), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsTotalSingleDive), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsMaxMinMultipleDives), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsStepMultipleDives), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_cnsTotalMultipleDives), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_otuPerMin), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_otuStep), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_otuTotal), sizeof(double));
+            file.read(reinterpret_cast<char*>(&step.m_ceiling), sizeof(double));
+            
+            loadedPlan->m_timeProfile.push_back(step);
+        }
+
+        file.close();
+        logWrite("Dive plan loaded successfully in ", timer.elapsed(), " ms from ", filePath);
+        
+    }, filePath, "Error Loading Dive Plan");
+
+    if (success) {
+        loadedPlan->setFilePath(filePath);
+    }
+
+    return loadedPlan;
 }
 
 } // namespace DiveComputer

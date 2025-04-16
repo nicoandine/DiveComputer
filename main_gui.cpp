@@ -65,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     // Create dive plan action with Command+D shortcut
     QAction *createDivePlanAction = new QAction("Create a dive plan", this);
-    createDivePlanAction->setShortcut(QKeySequence("Ctrl+D")); // Ctrl+D (macOS will show as Command+D)
+    createDivePlanAction->setShortcut(QKeySequence("Ctrl+N")); // Ctrl+N (macOS will show as Command+N)
     connect(createDivePlanAction, SIGNAL(triggered()), this, SLOT(createDivePlan()));
 
     // Create view log action with Command+L shortcut
@@ -129,7 +129,51 @@ void MainWindow::createDivePlan() {
 }
 
 void MainWindow::openDivePlan() {
-    printf("OPEN DIVE PLAN\n"); // PLACEHOLDER
+    // Create a file dialog for opening dive plan files
+    QString filter = "Dive Plan Files (*.dive);;All Files (*)";
+    QString filePath = QFileDialog::getOpenFileName(
+        this,
+        "Open Dive Plan",
+        QDir::homePath(),  // Start in the user's home directory
+        filter
+    );
+    
+    // Check if user canceled the dialog
+    if (filePath.isEmpty()) {
+        return;
+    }
+    
+    // Show progress dialog
+    QProgressDialog progress("Loading dive plan...", "Cancel", 0, 0, this);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(0); // Show immediately
+    progress.setValue(0);
+    progress.show();
+    QApplication::processEvents();
+    
+    // Attempt to load the dive plan
+    std::unique_ptr<DivePlan> loadedPlan = DivePlan::loadDiveFromFile(filePath.toStdString());
+    
+    // Close progress dialog
+    progress.close();
+    
+    if (!loadedPlan) {
+        QMessageBox::critical(this, "Error", "Failed to load dive plan from file.");
+        return;
+    }
+    
+    // Create a new dive plan window with the loaded plan
+    DivePlanWindow *divePlanWindow = new DivePlanWindow(std::move(loadedPlan), this);
+    divePlanWindow->setAttribute(Qt::WA_DeleteOnClose);
+    
+    // Track this window
+    childWindows->append(divePlanWindow);
+    
+    // Remove from our list when it's closed
+    connect(divePlanWindow, &QObject::destroyed, this, &MainWindow::handleDivePlanWindowDestroyed);
+    
+    // Activate with menu
+    activateWindowWithMenu(divePlanWindow);
 }
 
 void MainWindow::openGasListWindow() {

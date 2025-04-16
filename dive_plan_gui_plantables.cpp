@@ -74,7 +74,7 @@ void DivePlanWindow::setupDivePlanTable() {
     divePlanTable->setColumnHidden(COL_N2_PERCENT, true);
 
     // Monitor performance
-    logWrite("DivePlanWindow::setupDivePlanTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::setupDivePlanTable() took ", timer.elapsed(), " ms");
 
     // Update the dive plan
     refreshDivePlanTable();
@@ -218,7 +218,7 @@ void DivePlanWindow::refreshDivePlanTable() {
     QApplication::processEvents();
 
     // Monitor performance
-    logWrite("DivePlanWindow::refreshDivePlanTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::refreshDivePlanTable() took ", timer.elapsed(), " ms");
 }
 
 void DivePlanWindow::resizeDivePlanTable() {

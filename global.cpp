@@ -34,9 +34,6 @@ std::string getFilePath(const std::string& filename) {
     // Get application data location
     QString dataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     
-    // Print the location for debugging
-    logWrite("Using AppDataLocation: ", dataLocation.toStdString());
-    
     // Create directory if it doesn't exist
     QDir dir(dataLocation);
     if (!dir.exists()) {

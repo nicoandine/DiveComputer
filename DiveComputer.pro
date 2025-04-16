@@ -8,6 +8,7 @@ RESOURCES += resources.qrc
 SOURCES += \
     main.cpp \
     log_info.cpp \
+    log_info_gui.cpp \
     qcustomplot.cpp \
     enum.cpp \
     global.cpp \
@@ -37,6 +38,7 @@ SOURCES += \
 
 HEADERS += \
     log_info.hpp \
+    log_info_gui.hpp \
     qtheaders.hpp \
     qcustomplot.hpp \
     error_handler.hpp \

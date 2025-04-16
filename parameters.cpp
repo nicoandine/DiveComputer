@@ -57,7 +57,7 @@ bool Parameters::loadParametersFromFile() {
         
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
-            std::cerr << "Failed to open parameters file for reading." << std::endl;
+            logWrite("Failed to open parameters file for reading.");
             return false;
         } else {
             try {
@@ -95,7 +95,7 @@ bool Parameters::loadParametersFromFile() {
                 return true;
             }
             catch (const std::exception& e) {
-                std::cerr << "Exception while reading parameters: " << e.what() << std::endl;
+                logWrite("Exception while reading parameters: ", e.what());
                 file.close();
                 return false;
             }
@@ -121,7 +121,7 @@ bool Parameters::saveParametersToFile() {
     
     std::ofstream file(filename, std::ios::binary | std::ios::trunc);
     if (!file.is_open()) {
-        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        logWrite("Failed to open file for writing: ", filename);
         return false;
     }
 
@@ -158,11 +158,10 @@ bool Parameters::saveParametersToFile() {
     
     // Verify the file was created
     if (std::filesystem::exists(filename)) {
-        logWrite("Parameters saved successfully to ", filename, ". File size: ", 
-                std::filesystem::file_size(filename), " bytes");
+        logWrite("Parameters saved successfully to ", filename, ". File size: ", std::filesystem::file_size(filename), " bytes");
         return true;
     } else {
-        std::cerr << "Error: File does not exist after save operation!" << std::endl;
+        logWrite("Error: File does not exist after save operation!");
         return false;
     }
 }

@@ -25,7 +25,7 @@ void DivePlanWindow::setupSetpointsTable() {
     connect(setpointsTable, &QTableWidget::cellChanged, this, &DivePlanWindow::setpointCellChanged);
 
     // Monitor performance
-    logWrite("DivePlanWindow::setupSetpointsTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::setupSetpointsTable() took ", timer.elapsed(), " ms");
 
     // Refresh the setpoint table
     refreshSetpointsTable();
@@ -64,7 +64,7 @@ void DivePlanWindow::refreshSetpointsTable() {
     QApplication::processEvents();
 
     // Monitor performance
-    logWrite("DivePlanWindow::refreshSetpointsTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::refreshSetpointsTable() took ", timer.elapsed(), " ms");
 }
 
 void DivePlanWindow::setpointCellChanged(int row, int column) {

@@ -62,7 +62,7 @@ void DivePlanWindow::setupGasesTable() {
     }
 
     // Monitor performance
-    logWrite("DivePlanWindow::setupGasesTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::setupGasesTable() took ", timer.elapsed(), " ms");
 
     // Refresh the gases table
     refreshGasesTable();
@@ -165,7 +165,7 @@ void DivePlanWindow::refreshGasesTable() {
     QApplication::processEvents();
 
     // Monitor performance
-    logWrite("DivePlanWindow::refreshGasesTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::refreshGasesTable() took ", timer.elapsed(), " ms");
 }
 
 void DivePlanWindow::resizeGasesTable() {

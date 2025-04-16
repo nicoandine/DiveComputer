@@ -1,6 +1,7 @@
 #ifndef MAIN_GUI_HPP
 #define MAIN_GUI_HPP
 
+#include "log_info_gui.hpp"
 #include "qtheaders.hpp"
 #include "parameters_gui.hpp"
 #include "gaslist_gui.hpp"
@@ -53,6 +54,7 @@ private:
     QLabel *logoLabel; // New label for logo
     ParameterWindow *parameterWindow = nullptr;
     GasListWindow *gasListWindow = nullptr;
+    LogViewerWindow *logViewerWindow = nullptr;
     QList<QWidget*> *childWindows; // List to track all windows we create
 
     QMenu* divePlanningMenu = nullptr;
@@ -60,10 +62,12 @@ private:
 
 private slots:
     void createDivePlan();
-    void quitApplication();
     void openGasListWindow();
-    void handleWindowDestroyed();
     void openParameterWindow();
+    void viewLogWindow();
+
+    void quitApplication();
+    void handleWindowDestroyed();
     void handleDivePlanWindowDestroyed();
 };
 

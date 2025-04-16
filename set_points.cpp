@@ -97,20 +97,18 @@ void SetPoints::removeSetPoint(size_t index) {
     }
 }
 
-
 bool SetPoints::loadSetPointsFromFile() {
     const std::string filename = getFilePath(SETPOINTS_FILE_NAME);
     
     if (!std::filesystem::exists(filename)) {
-        ErrorHandler::logError("SetPoints", "Setpoints file not found at " + filename + 
-                               ". Using defaults.", ErrorSeverity::INFO);
+        logWrite("Setpoints file not found at ", filename, ". Using defaults.");
         return false;
     }
     
     return ErrorHandler::tryFileOperation([&]() {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
-            throw std::ios_base::failure("Failed to open setpoints file for reading");
+            logWrite("Failed to open setpoints file for reading");
         }
         
         // Clear existing setpoints
@@ -134,7 +132,7 @@ bool SetPoints::loadSetPointsFromFile() {
             file.read(reinterpret_cast<char*>(&setPoint), sizeof(setPoint));
             
             if (file.fail()) {
-                throw std::ios_base::failure("Error reading setpoint data");
+                logWrite("Error reading setpoint data");
             }
             
             // Add to vectors
@@ -147,8 +145,7 @@ bool SetPoints::loadSetPointsFromFile() {
         // Sort setpoints
         sortSetPoints();
         
-        ErrorHandler::logError("SetPoints", "Loaded " + std::to_string(count) + 
-                             " setpoints successfully", ErrorSeverity::INFO);
+        logWrite("Loaded ", count, " setpoints successfully");
     }, filename, "Error Loading Setpoints");
 }
 
@@ -162,7 +159,7 @@ bool SetPoints::saveSetPointsToFile() {
         
         std::ofstream file(filename, std::ios::binary | std::ios::trunc);
         if (!file.is_open()) {
-            throw std::ios_base::failure("Failed to open file for writing: " + filename);
+            logWrite("Failed to open file for writing: ", filename);
         }
         
         // Write number of setpoints
@@ -175,14 +172,13 @@ bool SetPoints::saveSetPointsToFile() {
             file.write(reinterpret_cast<const char*>(&m_setPoints[i]), sizeof(m_setPoints[i]));
             
             if (file.fail()) {
-                throw std::ios_base::failure("Error writing setpoint data");
+                logWrite("Error writing setpoint data");
             }
         }
         
         file.close();
         
-        ErrorHandler::logError("SetPoints", "Saved " + std::to_string(count) + 
-                             " setpoints successfully", ErrorSeverity::INFO);
+        logWrite("Saved ", count, " setpoints successfully");
     }, filename, "Error Saving Setpoints");
 }
 

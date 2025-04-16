@@ -176,7 +176,14 @@ void DivePlanWindow::setMaxTime() {
         }
     }
     m_divePlan->m_diveProfile[firstStopIndex].m_time = result.first;
-
+    
+    // Update the Stop Steps table
+    for (int i = 0; i < (int) m_divePlan->m_stopSteps.m_stopSteps.size(); i++)
+    {
+        if(m_divePlan->m_stopSteps.m_stopSteps[i].m_depth == m_divePlan->m_diveProfile[firstStopIndex].m_startDepth){
+            m_divePlan->m_stopSteps.m_stopSteps[i].m_time = result.first;
+        }
+    }
     // Refresh the dive plan
     m_divePlan->calculateDivePlan();
     m_divePlan->calculateGasConsumption();

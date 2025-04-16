@@ -64,23 +64,16 @@ void logClear() {
         
         // Delete the file
         if (std::remove(logFilePath.c_str()) == 0) {
-            std::cout << "Log file cleared successfully." << std::endl;
+            logWrite("Log file cleared successfully.");
         } else {
-            std::cerr << "Error: could not delete log file at: " << logFilePath << std::endl;
+            logWrite("Error: could not delete log file at: ", logFilePath);
         }
     }
     
     // Create a new, empty log file
     std::ofstream newFile(logFilePath);
     if (newFile.is_open()) {
-        // Add header or initial message
-        auto now = std::chrono::system_clock::now();
-        std::time_t time = std::chrono::system_clock::to_time_t(now);
-        
-        char timeBuffer[30];
-        std::strftime(timeBuffer, sizeof(timeBuffer), "[%Y-%m-%d %H:%M:%S]", std::localtime(&time));
-        
-        newFile << timeBuffer << " Log started" << std::endl;
+        logWrite("Log started");
         newFile.close();
     }
 }

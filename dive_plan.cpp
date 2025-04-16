@@ -94,7 +94,7 @@ void DivePlan::buildDivePlan(){
     m_diveProfile[0].m_ppActual = m_initialPressure;
 
     // Monitor performance
-    logWrite("DivePlan::build() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlan::build() took ", timer.elapsed(), " ms");
 }
 
 void DivePlan::calculateDivePlan(bool printLog) {
@@ -104,7 +104,7 @@ void DivePlan::calculateDivePlan(bool printLog) {
     QElapsedTimer timer;
     timer.start();
     if (printLog) {
-        logWrite("\nDivePlan::calculate() - START\n");
+        logWrite("DivePlan::calculate() - START");
     }
 
     m_firstDecoDepth = 0;
@@ -140,8 +140,8 @@ void DivePlan::calculateDivePlan(bool printLog) {
 
     // Monitor performance
     if (printLog) {
-        logWrite("DivePlan::calculate() took %lld ms\n", timer.elapsed());
-        logWrite("DivePlan::calculate() - END\n\n");
+        logWrite("DivePlan::calculate() took ", timer.elapsed(), " ms");
+        logWrite("DivePlan::calculate() - END");
     }
 }
 
@@ -173,7 +173,7 @@ void DivePlan::calculateOtherVariables(double GF, bool printLog){
 
     // Monitor performance
     if (printLog) {
-        logWrite("DivePlan::updateVariables() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::updateVariables() took ", timer.elapsed(), " ms");
     }
 }
 
@@ -238,7 +238,7 @@ void DivePlan::calculateTimeProfile(bool printLog){
 
     // Monitor performance
     if (printLog) {
-        logWrite("DivePlan::updateTimeProfile() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::updateTimeProfile() took ", timer.elapsed(), " ms");
     }
 
 }
@@ -281,7 +281,7 @@ void DivePlan::calculateGasConsumption(bool printLog) {
 
     // Monitor performance
     if (printLog) {
-        logWrite("DivePlan::updateGasConsumption() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::updateGasConsumption() took ", timer.elapsed(), " ms");
     }
 }
 
@@ -289,7 +289,7 @@ void DivePlan::calculateDiveSummary(bool printLog) {
     if (m_diveProfile.empty()) return;
 
     if (printLog) {
-        logWrite("\nDivePlan::calculateDiveSummary() - START\n");
+        logWrite("DivePlan::calculateDiveSummary() - START");
     }
 
     // Log performance
@@ -320,8 +320,8 @@ void DivePlan::calculateDiveSummary(bool printLog) {
     
     // Monitor performance
     if (printLog) {
-        logWrite("DivePlan::calculateDiveSummary() took %lld ms\n", timer.elapsed());
-        logWrite("DivePlan::calculateDiveSummary() - END\n\n");
+        logWrite("DivePlan::calculateDiveSummary() took ", timer.elapsed(), " ms");
+        logWrite("DivePlan::calculateDiveSummary() - END");
     }
 }
 
@@ -374,7 +374,7 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
     maxTTS = tempDivePlan.getTTS();
 
     // Monitor performance
-    logWrite("DivePlan::getMaxTimeAndTTS() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlan::getMaxTimeAndTTS() took ", timer.elapsed(), " ms");
 
     return std::make_pair(maxTime, maxTTS);
 }
@@ -440,7 +440,7 @@ double DivePlan::getTTSDelta(double incrementTime){
     tempDivePlan.calculateDivePlan(false);
 
     // Monitor performance
-    logWrite("DivePlan::getTTSDelta() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlan::getTTSDelta() took ", timer.elapsed(), " ms");
 
     return tempDivePlan.getTTS() - getTTS();
 }

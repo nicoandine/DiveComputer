@@ -63,6 +63,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     divePlanAction->setShortcut(QKeySequence("Ctrl+D")); // Ctrl+D (macOS will show as Command+D)
     connect(divePlanAction, SIGNAL(triggered()), this, SLOT(createDivePlan()));
 
+    // Create view log action with Command+L shortcut
+    QAction *viewLogAction = new QAction("View the log", this);
+    viewLogAction->setShortcut(QKeySequence("Ctrl+L")); // Ctrl+L (macOS will show as Command+L)
+    connect(viewLogAction, SIGNAL(triggered()), this, SLOT(viewLogWindow()));
+
     // Create Tools menu
     QMenu *toolsMenu = QMainWindow::menuBar()->addMenu("Tools");
     
@@ -70,6 +75,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     toolsMenu->addAction(parametersAction);
     toolsMenu->addAction(gasMixesAction);
     toolsMenu->addAction(divePlanAction);
+    toolsMenu->addSeparator();
+    toolsMenu->addAction(viewLogAction);
     
     // Create a permanent Diveplanning menu (initially disabled)
     divePlanningMenu = QMainWindow::menuBar()->addMenu("Diveplanning");
@@ -115,6 +122,45 @@ void MainWindow::createDivePlan() {
     }
 }
 
+void MainWindow::openGasListWindow() {
+    openWindow<GasListWindow>(&gasListWindow);
+}
+
+void MainWindow::openParameterWindow() {
+    openWindow<ParameterWindow>(&parameterWindow);
+}
+
+void MainWindow::viewLogWindow() {
+    // Check if the window exists but might have been closed
+    if (logViewerWindow) {
+        // If it exists but is not visible, it may have been closed
+        if (!logViewerWindow->isVisible()) {
+            delete logViewerWindow;
+            logViewerWindow = nullptr;
+        }
+    }
+    
+    // Create the window if it doesn't exist
+    if (!logViewerWindow) {
+        logViewerWindow = new LogViewerWindow(nullptr);
+        logViewerWindow->setAttribute(Qt::WA_DeleteOnClose);
+        
+        // Track this window
+        childWindows->append(logViewerWindow);
+        
+        // Setup a direct connection for this specific window
+        connect(logViewerWindow, &QObject::destroyed, this, [this]() {
+            childWindows->removeOne(logViewerWindow);
+            logViewerWindow = nullptr;
+        });
+    }
+    
+    // Show and bring to front
+    logViewerWindow->show();
+    logViewerWindow->activateWindow();
+    logViewerWindow->raise();
+}
+
 void MainWindow::quitApplication() {
     // Close all child windows we've created
     QList<QWidget*> windowsCopy = *childWindows; // Make a copy since closing will modify the list
@@ -125,6 +171,7 @@ void MainWindow::quitApplication() {
     }
     
     // Now close the main window, which will exit the application
+    logWrite("Successfully quitting the application");
     close();
 }
 
@@ -163,23 +210,15 @@ void MainWindow::activateWindowWithMenu(DivePlanWindow* window) {
     window->activateWindow();
 }
 
-void MainWindow::openGasListWindow() {
-    openWindow<GasListWindow>(&gasListWindow);
-}
-
-void MainWindow::openParameterWindow() {
-    openWindow<ParameterWindow>(&parameterWindow);
-}
-
 void MainWindow::handleWindowDestroyed() {
     QObject* obj = sender();
     if (obj) {
         childWindows->removeOne(static_cast<QWidget*>(obj));
         
-        // We can't directly set the pointer to nullptr here
-        // Will need to manually check which window was destroyed
+        // Check which window was destroyed
         if (gasListWindow == obj) gasListWindow = nullptr;
         else if (parameterWindow == obj) parameterWindow = nullptr;
+        else if (logViewerWindow == obj) logViewerWindow = nullptr;
     }
 }
 

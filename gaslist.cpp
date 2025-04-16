@@ -35,8 +35,7 @@ bool GasList::loadGaslistFromFile() {
     
     // If file doesn't exist, add default gas and return
     if (!std::filesystem::exists(filename)) {
-        ErrorHandler::logError("GasList", "Gas list file not found at " + filename + ". Using default values.", 
-                              ErrorSeverity::INFO);
+        logWrite("Gas list file not found at ", filename, ". Using default values.");
         
         // Since file doesn't exist, let's add a default gas (21% O2)
         if (m_gases.empty()) {
@@ -53,7 +52,7 @@ bool GasList::loadGaslistFromFile() {
     return ErrorHandler::tryFileOperation([&]() {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
-            throw std::ios_base::failure("Failed to open gas list file for reading.");
+            logWrite("Failed to open gas list file for reading.");
         }
         
         // Clear the list, determine the number of gases and reserve space for them
@@ -75,7 +74,7 @@ bool GasList::loadGaslistFromFile() {
             file.read(reinterpret_cast<char*>(&gasStatus), sizeof(gasStatus));
             
             if (file.fail()) {
-                throw std::ios_base::failure("Error reading gas data from file");
+                logWrite("Error reading gas data from file");
             }
             
             // Add the gas to our list
@@ -83,15 +82,14 @@ bool GasList::loadGaslistFromFile() {
         }
         
         file.close();
-        ErrorHandler::logError("GasList", "Gas list loaded successfully. Loaded " + 
-                             std::to_string(gasCount) + " gases.", ErrorSeverity::INFO);
+        logWrite("Gas list loaded successfully. Loaded ", gasCount, " gases.");
     }, filename, "Error Loading Gas List");
 }
 
 bool GasList::saveGaslistToFile() {
     const std::string filename = getFilePath(GASLIST_FILE_NAME);
     
-    ErrorHandler::logError("GasList", "Saving gas list to: " + filename, ErrorSeverity::INFO);
+    logWrite("Saving gas list to: ", filename);
     
     return ErrorHandler::tryFileOperation([&]() {
         // Create directories if they don't exist
@@ -100,7 +98,7 @@ bool GasList::saveGaslistToFile() {
         
         std::ofstream file(filename, std::ios::binary | std::ios::trunc);
         if (!file.is_open()) {
-            throw std::ios_base::failure("Failed to open file for writing: " + filename);
+            logWrite("Failed to open file for writing: ", filename);
         }
     
         // First write the number of gases
@@ -108,7 +106,7 @@ bool GasList::saveGaslistToFile() {
         file.write(reinterpret_cast<const char*>(&gasCount), sizeof(gasCount));
         
         if (file.fail()) {
-            throw std::ios_base::failure("Error writing gas count to file");
+            logWrite("Error writing gas count to file");
         }
         
         // Then write each gas
@@ -119,7 +117,7 @@ bool GasList::saveGaslistToFile() {
             file.write(reinterpret_cast<const char*>(&gas.m_gasStatus), sizeof(gas.m_gasStatus));
             
             if (file.fail()) {
-                throw std::ios_base::failure("Error writing gas data to file");
+                logWrite("Error writing gas data to file");
             }
         }
     
@@ -133,9 +131,7 @@ bool GasList::saveGaslistToFile() {
                 std::error_code());
         }
         
-        ErrorHandler::logError("GasList", "Gas list saved successfully to " + filename + 
-                             ". File size: " + std::to_string(std::filesystem::file_size(filename)) + 
-                             " bytes", ErrorSeverity::INFO);
+        logWrite("Gas list saved successfully to ", filename, ". File size: ", std::filesystem::file_size(filename), " bytes");
     }, filename, "Error Saving Gas List");
 }
 

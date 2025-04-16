@@ -241,7 +241,7 @@ void DivePlanWindow::setupSummaryWidget() {
     summaryLayout->addStretch();
     
     // Monitor performance
-    logWrite("DivePlanWindow::setupSummaryTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::setupSummaryTable() took ", timer.elapsed(), " ms");
 
     // Update the dive summary
     refreshDiveSummaryTable();
@@ -331,7 +331,7 @@ void DivePlanWindow::refreshDiveSummaryTable() {
     QApplication::processEvents();
 
     // Monitor performance
-    logWrite("DivePlanWindow::refreshDiveSummaryTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::refreshDiveSummaryTable() took ", timer.elapsed(), " ms");
 }
 
 void DivePlanWindow::onGFChanged() {

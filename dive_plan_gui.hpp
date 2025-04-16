@@ -137,6 +137,7 @@ private:
     QAction* m_maxTimeAction;
     QAction* m_optimiseDecoGasAction;
     QAction* m_graphCompartmentsAction;
+    QAction* m_planConsecutiveDiveAction;
 
     // UI controls
     QTableWidget *stopStepsTable;
@@ -240,6 +241,7 @@ private slots:
     void setMaxTime();
     void optimiseDecoGas();
     void graphCompartments();
+    void planConsecutiveDive();
 
     // Helper methods 
     QString  getPhaseString(Phase phase);

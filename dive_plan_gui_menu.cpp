@@ -56,6 +56,12 @@ void DivePlanWindow::setupMenu() {
     // Add additional actions
     m_divePlanningMenu->addSeparator();
     
+    // Plan consecutive dive
+    m_planConsecutiveDiveAction = new QAction("Plan consecutive dive", this);
+    m_planConsecutiveDiveAction->setVisible(true);
+    connect(m_planConsecutiveDiveAction, &QAction::triggered, this, &DivePlanWindow::planConsecutiveDive);
+    m_divePlanningMenu->addAction(m_planConsecutiveDiveAction);
+
     // Graph compartments
     m_graphCompartmentsAction = new QAction("Graph compartments", this);
     m_graphCompartmentsAction->setVisible(true);
@@ -212,5 +218,9 @@ void DivePlanWindow::graphCompartments() {
     m_compartmentGraphWindow->activateWindow();
     m_compartmentGraphWindow->raise();
 }    
+
+void DivePlanWindow::planConsecutiveDive() {
+    printf("PLAN NEXT DIVE\n");
+}
 
 } // namespace DiveComputer

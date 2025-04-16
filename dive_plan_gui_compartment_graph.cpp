@@ -26,16 +26,26 @@ void CompartmentGraphWindow::setupUI(){
     // Create main layout
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
     
-    // Create toolbar-like widget for the compartment selector
+    // Create toolbar-like widget for the selectors
     QWidget* toolbarWidget = new QWidget(centralWidget);
     QHBoxLayout* toolbarLayout = new QHBoxLayout(toolbarWidget);
     toolbarLayout->setContentsMargins(10, 5, 10, 5);
     
+    // Create gas type selector label
+    QLabel* gasTypeLabel = new QLabel("Gas:", toolbarWidget);
+    toolbarLayout->addWidget(gasTypeLabel);
+    m_graphGasTypeSelector = new QComboBox(toolbarWidget);
+    m_graphGasTypeSelector->addItem(returnQStringGasType(GraphGasType::INERT), static_cast<int>(GraphGasType::INERT));
+    m_graphGasTypeSelector->addItem(returnQStringGasType(GraphGasType::N2), static_cast<int>(GraphGasType::N2));
+    m_graphGasTypeSelector->addItem(returnQStringGasType(GraphGasType::HE), static_cast<int>(GraphGasType::HE));
+    connect(m_graphGasTypeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+            this, &CompartmentGraphWindow::onGasTypeChanged);
+    toolbarLayout->addWidget(m_graphGasTypeSelector);
+    toolbarLayout->addSpacing(20);
+    
     // Create compartment selector label
     QLabel* selectorLabel = new QLabel("Compartment:", toolbarWidget);
     toolbarLayout->addWidget(selectorLabel);
-    
-    // Create compartment selector dropdown
     m_compartmentSelector = new QComboBox(toolbarWidget);
     for (int i = 1; i <= NUM_COMPARTMENTS; ++i) {
         m_compartmentSelector->addItem(QString::number(i), i - 1); // Store 0-indexed value
@@ -43,11 +53,20 @@ void CompartmentGraphWindow::setupUI(){
     connect(m_compartmentSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), 
             this, &CompartmentGraphWindow::onCompartmentChanged);
     toolbarLayout->addWidget(m_compartmentSelector);
+    toolbarLayout->addSpacing(20);
     
-    // Add spacer to push elements to the left
+    // Create graph mode selector label
+    QLabel* graphModeLabel = new QLabel("Graph against:", toolbarWidget);
+    toolbarLayout->addWidget(graphModeLabel);
+    m_graphModeSelector = new QComboBox(toolbarWidget);
+    m_graphModeSelector->addItem("Ambient Pressure", static_cast<int>(GraphMode::PRESSURE));
+    m_graphModeSelector->addItem("Time", static_cast<int>(GraphMode::TIME));
+    connect(m_graphModeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+            this, &CompartmentGraphWindow::onGraphModeChanged);
+    toolbarLayout->addWidget(m_graphModeSelector);
+    
+    // Add spacer to push elements to the left and add toolbar to the main layout
     toolbarLayout->addStretch();
-    
-    // Add toolbar to main layout
     mainLayout->addWidget(toolbarWidget);
     
     // Create graph widget
@@ -69,21 +88,29 @@ void CompartmentGraphWindow::setupGraph(){
     // Create the three graphs we need
     m_graphWidget->addGraph(); // Graph 0: Actual pressure
     m_graphWidget->addGraph(); // Graph 1: Max adjusted pressure
-    m_graphWidget->addGraph(); // Graph 2: y = x reference line
+    m_graphWidget->addGraph(); // Graph 2: Reference line or ambient pressure
     
     // Set colors and styles for the graphs
     m_graphWidget->graph(0)->setPen(QPen(QColor(0, 114, 189), 2)); // Blue for actual pressure
-    m_graphWidget->graph(0)->setName("Actual Pressure");
-    
     m_graphWidget->graph(1)->setPen(QPen(QColor(217, 83, 25), 2)); // Red for max adjusted pressure
-    m_graphWidget->graph(1)->setName("Max GF Adjusted Pressure");
-    
     m_graphWidget->graph(2)->setPen(QPen(QColor(120, 120, 120), 1, Qt::DashLine)); // Gray dashed for reference
-    m_graphWidget->graph(2)->setName("Reference Line (y = x)");
     
-    // Set axis labels
-    m_graphWidget->xAxis->setLabel("Ambient Pressure (bar)");
-    m_graphWidget->yAxis->setLabel("Compartment Pressure (bar)");
+    // Get gas type name for labels
+    QString gasName = returnQStringGasType(m_graphGasType);
+    
+    // Set initial names
+    m_graphWidget->graph(0)->setName(QString("Actual %1 Pressure").arg(gasName));
+    m_graphWidget->graph(1)->setName(QString("Max GF Adjusted %1 Pressure").arg(gasName));
+    m_graphWidget->graph(2)->setName(QString("Ambient %1 Pressure").arg(gasName));
+
+    // Set axis labels for pressure mode
+    if (m_graphMode == GraphMode::PRESSURE) {
+        m_graphWidget->xAxis->setLabel("Ambient Pressure (bar)");
+        m_graphWidget->yAxis->setLabel(QString("%1 Pressure (bar)").arg(gasName));
+    } else {
+        m_graphWidget->xAxis->setLabel("Time (min)");
+        m_graphWidget->yAxis->setLabel("Pressure (bar)");
+    }
     
     // Enable legend
     m_graphWidget->legend->setVisible(true);
@@ -93,58 +120,69 @@ void CompartmentGraphWindow::setupGraph(){
     m_graphWidget->axisRect()->setupFullAxesBox();
 }
 
-void CompartmentGraphWindow::updateGraph(int compartmentIndex){
-    // std::vector<DiveStep> profile = m_divePlan->m_timeProfile;
-    std::vector<DiveStep> profile = m_divePlan->m_diveProfile;
-
+void CompartmentGraphWindow::updateGraph(int compartmentIndex) {
     // Log performance
     QElapsedTimer timer;
     timer.start();
+
+    // Get the appropriate profile
+    std::vector<DiveStep> profile = m_divePlan->m_diveProfile;
 
     // Ensure we have valid data to display
     if (profile.empty()) {
         return;
     }
     
-    // We'll convert the compartment selector index (0-based) to the actual compartment index
-    int k = compartmentIndex;
-    
-    // Clear existing data
-    m_graphWidget->graph(0)->data()->clear();
-    m_graphWidget->graph(1)->data()->clear();
-    m_graphWidget->graph(2)->data()->clear();
-    
-    // Find the maximum values for scaling
-    double maxPAmb = g_constants.m_atmPressureStp; // Initialize with minimum value
-    double maxPressure = 0.0;
-    
-    for (const auto& step : profile) {
-        maxPAmb = std::max(maxPAmb, step.m_pAmbStartDepth);
-        maxPressure = std::max(maxPressure, step.m_ppActual[k].m_pInert);
-        maxPressure = std::max(maxPressure, step.m_ppMaxAdjustedGF[k].m_pInert);
+    // IMPORTANT: Clear existing data COMPLETELY
+    for (int i = 0; i < m_graphWidget->graphCount(); ++i) {
+        m_graphWidget->graph(i)->data()->clear();
     }
     
-    // Add a margin to the maximum value
-    maxPressure *= 1.1;
+    // Get gas type name for labels
+    QString gasName = returnQStringGasType(m_graphGasType);
     
-    // Fill graph data
-    for (const auto& step : profile) {
-        // Graph 0: Actual pressure
-        m_graphWidget->graph(0)->addData(step.m_pAmbStartDepth, step.m_ppActual[k].m_pInert);
-        
-        // Graph 1: Max adjusted pressure with GF
-        m_graphWidget->graph(1)->addData(step.m_pAmbStartDepth, step.m_ppMaxAdjustedGF[k].m_pInert);
+    // Initialize with extreme values for finding min/max
+    double x_min = std::numeric_limits<double>::max();
+    double x_max = std::numeric_limits<double>::lowest();
+    double y_min = std::numeric_limits<double>::max();
+    double y_max = std::numeric_limits<double>::lowest();
+
+    // Process and add data points. 
+    // if x is pAmb, skip the first 3 steps; for time skip the first step 
+    // as they confuse the chart otherwise (same x, different y)
+    int step_start = (m_graphMode == GraphMode::PRESSURE) ? 3 : 1;
+    for (int i = step_start; i < (int) profile.size(); i++){
+        DiveStep step = profile[i];
+ 
+        // Decide the x axis based on mode and populate the y values
+        double x_value = (m_graphMode == GraphMode::PRESSURE) ? step.m_pAmbStartDepth : step.m_runTime;
+        double y1_value = getGasPressure(step.m_ppActual[compartmentIndex]);
+        double y2_value = getGasPressure(step.m_ppMaxAdjustedGF[compartmentIndex]);
+        double y3_value = getAmbientGasPressure(step.m_pAmbStartDepth, step);
+            
+        // Update the 3 graphs
+        m_graphWidget->graph(0)->addData(x_value, y1_value);
+        m_graphWidget->graph(1)->addData(x_value, y2_value);
+        m_graphWidget->graph(2)->addData(x_value, y3_value);
+
+        // update maximums and minimums for scaling
+        x_min = std::min(x_min, x_value);
+        x_max = std::max(x_max, x_value);
+        y_min = std::min(y_min, std::min(y1_value, std::min(y2_value, y3_value)));
+        y_max = std::max(y_max, std::max(y1_value, std::max(y2_value, y3_value)));
+
+        std::cout << "x: " << x_value << " y1: " << y1_value << " y2: " << y2_value << " y3: " << y3_value << std::endl;
     }
+
+    // Set the range
+    m_graphWidget->xAxis->setRange(x_min, x_max);
+    m_graphWidget->yAxis->setRange(y_min, y_max);
     
-    // Graph 2: y = x reference line (add points at start and end of range)
-    double minValue = g_constants.m_atmPressureStp;
-    m_graphWidget->graph(2)->addData(minValue, minValue);
-    m_graphWidget->graph(2)->addData(maxPAmb, maxPAmb);
-    
-    // Set the axis ranges
-    m_graphWidget->xAxis->setRange(minValue, maxPAmb);
-    m_graphWidget->yAxis->setRange(0, maxPressure);
-    
+    // Update axis labels
+    QString x_label = (m_graphMode == GraphMode::PRESSURE) ? "Ambient Pressure (bar)" : "Runtime (min)";
+    m_graphWidget->xAxis->setLabel(x_label);
+    m_graphWidget->yAxis->setLabel(QString("%1 Pressure (bar)").arg(gasName));
+            
     // Refresh the graph
     m_graphWidget->replot();
 
@@ -161,6 +199,20 @@ void CompartmentGraphWindow::resizeEvent(QResizeEvent* event){
     }
 }
 
+void CompartmentGraphWindow::onGasTypeChanged(int index){
+    // Get the gas type from the item data
+    m_graphGasType = static_cast<GraphGasType>(m_graphGasTypeSelector->itemData(index).toInt());
+    
+    // Update the graph with the current compartment but new gas type
+    int compartmentIndex = m_compartmentSelector->itemData(m_compartmentSelector->currentIndex()).toInt();
+    
+    // Reset the graph setup with new labels
+    setupGraph();
+    
+    // Update the graph with new data
+    updateGraph(compartmentIndex);
+}
+
 void CompartmentGraphWindow::onCompartmentChanged(int index){
     // Get the actual compartment index (0-based)
     int compartmentIndex = m_compartmentSelector->itemData(index).toInt();
@@ -168,5 +220,54 @@ void CompartmentGraphWindow::onCompartmentChanged(int index){
     // Update the graph with the new compartment data
     updateGraph(compartmentIndex);
 }
+
+void CompartmentGraphWindow::onGraphModeChanged(int index){
+    // Get the graph mode from the item data
+    m_graphMode = static_cast<GraphMode>(m_graphModeSelector->itemData(index).toInt());
+    
+    // Reset the graph setup with new labels
+    setupGraph();
+    
+    // Update the graph with the current compartment but new mode
+    int compartmentIndex = m_compartmentSelector->itemData(m_compartmentSelector->currentIndex()).toInt();
+    updateGraph(compartmentIndex);
+}
+
+double CompartmentGraphWindow::getGasPressure(const CompartmentPP& pp) const {
+    switch (m_graphGasType) {
+        case GraphGasType::N2:
+            return pp.m_pN2;
+        case GraphGasType::HE:
+            return pp.m_pHe;
+        case GraphGasType::INERT:
+        default:
+            return pp.m_pInert;
+    }
+}
+
+double CompartmentGraphWindow::getAmbientGasPressure(double pressure, const DiveStep& step) const {
+    switch (m_graphGasType) {
+        case GraphGasType::N2:
+            return pressure * step.m_n2Percent / 100.0;
+        case GraphGasType::HE:
+            return pressure * step.m_hePercent / 100.0;
+        case GraphGasType::INERT:
+        default:
+            return pressure * (step.m_n2Percent + step.m_hePercent) / 100.0;
+    }
+}
+
+QString CompartmentGraphWindow::returnQStringGasType(GraphGasType type){
+    switch (type) {
+            case GraphGasType::N2:
+                return "N2";
+            case GraphGasType::HE:
+                return "He";
+            case GraphGasType::INERT:
+            default:
+                return "N2+He";
+        }
+}
+
 
 } // namespace DiveComputer

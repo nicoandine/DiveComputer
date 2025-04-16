@@ -10,6 +10,19 @@
 
 namespace DiveComputer {
 
+// Graph mode enum
+enum class GraphMode {
+    PRESSURE,
+    TIME
+};
+
+// Gas type enum
+enum class GraphGasType {
+    INERT,
+    N2,
+    HE
+};
+
 class CompartmentGraphWindow : public QMainWindow {
     Q_OBJECT
     
@@ -25,8 +38,14 @@ private:
     const DivePlan* m_divePlan;
     
     // UI Elements
+    QComboBox* m_graphGasTypeSelector;
+    QComboBox* m_graphModeSelector;
     QComboBox* m_compartmentSelector;
     QCustomPlot* m_graphWidget;
+    
+    // Current graph mode and gas type
+    GraphMode m_graphMode = GraphMode::PRESSURE;
+    GraphGasType m_graphGasType = GraphGasType::INERT;
     
     // Styling constants
     static constexpr int WindowWidth = 800;
@@ -37,8 +56,15 @@ private:
     void setupGraph();
     void updateGraph(int compartmentIndex);
     
+    // Helper function to get current gas pressure
+    double getGasPressure(const CompartmentPP& pp) const;
+    double getAmbientGasPressure(double pressure, const DiveStep& step) const;
+    QString returnQStringGasType(GraphGasType type);
+
 private slots:
     void onCompartmentChanged(int index);
+    void onGraphModeChanged(int index);
+    void onGasTypeChanged(int index);
 };
 
 } // namespace DiveComputer

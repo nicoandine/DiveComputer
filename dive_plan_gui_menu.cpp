@@ -189,13 +189,8 @@ void DivePlanWindow::optimiseDecoGas() { // PLACEHOLDER
 }
 
 void DivePlanWindow::graphCompartments() {
-    // Log performance
-    QElapsedTimer timer;
-    timer.start();
-
     // Ensure the dive plan is calculated with time profile
     if (m_divePlan->m_timeProfile.empty()) {
-        // Recalculate the dive plan to ensure we have valid time profile data
         m_divePlan->calculateDivePlan(false);
         m_divePlan->calculateTimeProfile(false);
     }

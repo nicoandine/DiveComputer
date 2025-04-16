@@ -137,7 +137,7 @@ void CompartmentGraphWindow::updateGraph(int compartmentIndex) {
     for (int i = 0; i < m_graphWidget->graphCount(); ++i) {
         m_graphWidget->graph(i)->data()->clear();
     }
-    
+
     // Get gas type name for labels
     QString gasName = returnQStringGasType(m_graphGasType);
     
@@ -148,10 +148,8 @@ void CompartmentGraphWindow::updateGraph(int compartmentIndex) {
     double y_max = std::numeric_limits<double>::lowest();
 
     // Process and add data points. 
-    // if x is pAmb, skip the first 3 steps; for time skip the first step 
-    // as they confuse the chart otherwise (same x, different y)
-    int step_start = (m_graphMode == GraphMode::PRESSURE) ? 3 : 1;
-    for (int i = step_start; i < (int) profile.size(); i++){
+    // skip the first 3 stepsto get to max depth
+    for (int i = 3; i < (int) profile.size(); i++){
         DiveStep step = profile[i];
  
         // Decide the x axis based on mode and populate the y values
@@ -170,8 +168,6 @@ void CompartmentGraphWindow::updateGraph(int compartmentIndex) {
         x_max = std::max(x_max, x_value);
         y_min = std::min(y_min, std::min(y1_value, std::min(y2_value, y3_value)));
         y_max = std::max(y_max, std::max(y1_value, std::max(y2_value, y3_value)));
-
-        std::cout << "x: " << x_value << " y1: " << y1_value << " y2: " << y2_value << " y3: " << y3_value << std::endl;
     }
 
     // Set the range

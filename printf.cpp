@@ -46,6 +46,12 @@ void DiveStep::printCompartmentDetails(const int step, const int compartment) co
               << std::setw(5) << m_hePercent << std::endl;
 }
 
+void StopSteps::print() {
+    for (const auto& step : m_stopSteps) {
+        std::cout << "Depth: " << step.m_depth << " Time: " << step.m_time << std::endl;
+    }
+}
+
 void DivePlan::printPlan(std::vector<DiveStep> profile){
     printf("\nDIVE PROFILE\n\n");
  

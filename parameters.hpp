@@ -1,6 +1,7 @@
 #ifndef PARAMETERS_HPP
 #define PARAMETERS_HPP
 
+#include "log_info.hpp"
 #include "global.hpp"
 #include <iostream>
 #include <fstream>

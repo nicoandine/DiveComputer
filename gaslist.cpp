@@ -31,7 +31,7 @@ void GasList::clearGaslist() {
 bool GasList::loadGaslistFromFile() {
     const std::string filename = getFilePath(GASLIST_FILE_NAME);
     
-    std::cout << "Trying to load gas list from: " << filename << std::endl;
+    logWrite("Trying to load gas list from: ", filename);
     
     // If file doesn't exist, add default gas and return
     if (!std::filesystem::exists(filename)) {

@@ -183,7 +183,7 @@ void CompartmentGraphWindow::updateGraph(int compartmentIndex) {
     m_graphWidget->replot();
 
     // Monitor performance
-    printf("CompartmentGraphWindow::updateGraph() took %lld ms\n", timer.elapsed());
+    logWrite("CompartmentGraphWindow::updateGraph() took %lld ms\n", timer.elapsed());
 }
 
 void CompartmentGraphWindow::resizeEvent(QResizeEvent* event){

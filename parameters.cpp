@@ -49,11 +49,11 @@ void Parameters::setToDefault() {
 bool Parameters::loadParametersFromFile() {
     const std::string filename = getFilePath(PARAMETERS_FILE_NAME);
     
-    std::cout << "Trying to load parameters from: " << filename << std::endl;
+    logWrite("Trying to load parameters from: ", filename);
     
     // Try to load parameters from file if it exists
     if (std::filesystem::exists(filename)) {
-        std::cout << "Parameters file exists, loading it..." << std::endl;
+        logWrite("Parameters file exists, loading it...");
         
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
@@ -91,7 +91,7 @@ bool Parameters::loadParametersFromFile() {
                 file.read(reinterpret_cast<char*>(&m_noFlyTimeIncrement), sizeof(m_noFlyTimeIncrement));
                 
                 file.close();
-                std::cout << "Parameters loaded successfully." << std::endl;
+                logWrite("Parameters loaded successfully.");
                 return true;
             }
             catch (const std::exception& e) {
@@ -101,7 +101,7 @@ bool Parameters::loadParametersFromFile() {
             }
         }
     } else {
-        std::cout << "Parameters file does not exist at " << filename << ". Using default values." << std::endl;
+        logWrite("Parameters file does not exist at ", filename, ". Using default values.");
         
         // Since file doesn't exist, let's try saving default values to establish the file
         saveParametersToFile();
@@ -113,7 +113,7 @@ bool Parameters::loadParametersFromFile() {
 bool Parameters::saveParametersToFile() {
     const std::string filename = getFilePath(PARAMETERS_FILE_NAME);
     
-    std::cout << "Saving parameters to: " << filename << std::endl;
+    logWrite("Saving parameters to: ", filename);
     
     // Create directories if they don't exist
     std::filesystem::path filePath(filename);
@@ -158,8 +158,8 @@ bool Parameters::saveParametersToFile() {
     
     // Verify the file was created
     if (std::filesystem::exists(filename)) {
-        std::cout << "Parameters saved successfully to " << filename << ". File size: " 
-                  << std::filesystem::file_size(filename) << " bytes" << std::endl;
+        logWrite("Parameters saved successfully to ", filename, ". File size: ", 
+                std::filesystem::file_size(filename), " bytes");
         return true;
     } else {
         std::cerr << "Error: File does not exist after save operation!" << std::endl;

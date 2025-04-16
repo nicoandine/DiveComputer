@@ -26,7 +26,7 @@ void DivePlanWindow::setupStopStepsTable() {
         this, &DivePlanWindow::stopStepCellChanged);
 
     // Monitor performance
-    printf("DivePlanWindow::setupStopStepsTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::setupStopStepsTable() took %lld ms\n", timer.elapsed());
 
     // Refresh the stop steps table
     refreshStopStepsTable();
@@ -64,7 +64,7 @@ void DivePlanWindow::refreshStopStepsTable() {
     QApplication::processEvents();
 
     // Monitor performance
-    printf("DivePlanWindow::refreshStopStepsTable() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::refreshStopStepsTable() took %lld ms\n", timer.elapsed());
 }
 
 void DivePlanWindow::stopStepCellChanged(int row, int column) {

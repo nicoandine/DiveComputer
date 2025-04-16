@@ -59,10 +59,4 @@ void StopSteps::sortAscending() {
     });
 }
 
-void StopSteps::print() {
-    for (const auto& step : m_stopSteps) {
-        std::cout << "Depth: " << step.m_depth << " Time: " << step.m_time << std::endl;
-    }
-}
-
 } // namespace DiveComputer

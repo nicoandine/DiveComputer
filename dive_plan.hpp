@@ -5,6 +5,7 @@
 #include <memory>
 #include <set>
 
+#include "log_info.hpp"
 #include "enum.hpp"
 #include "dive_step.hpp"
 #include "stop_steps.hpp"

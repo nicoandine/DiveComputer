@@ -42,7 +42,7 @@ double OxygenToxicity::getCNSMaxMin(double ppO2Ambient, bool singleDive) const {
 
     if (ppO2Ambient >= m_o2ExposureParameters[0].m_ppO2Start) {
         if (ppO2Ambient > m_o2ExposureParameters[NUM_O2_EXPOSURE_PARAMETERS - 1].m_ppO2End) {
-            std::cout << "WARNING: ppO2 is greater than the highest ppO2 value in the NOAA table for oxygen toxicity" << std::endl;
+            logWrite("WARNING: ppO2 is greater than the highest ppO2 value in the NOAA table for oxygen toxicity");
             a = 0.0;
             b = 100000.0;
         } else {

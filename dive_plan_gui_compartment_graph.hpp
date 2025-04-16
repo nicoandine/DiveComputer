@@ -1,6 +1,7 @@
 #ifndef DIVE_PLAN_GUI_COMPARTMENT_GRAPH_HPP
 #define DIVE_PLAN_GUI_COMPARTMENT_GRAPH_HPP
 
+#include "log_info.hpp"
 #include "qtheaders.hpp"
 #include "dive_plan.hpp"
 #include "compartments.hpp"

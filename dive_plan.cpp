@@ -94,7 +94,7 @@ void DivePlan::buildDivePlan(){
     m_diveProfile[0].m_ppActual = m_initialPressure;
 
     // Monitor performance
-    printf("DivePlan::build() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlan::build() took %lld ms\n", timer.elapsed());
 }
 
 void DivePlan::calculateDivePlan(bool printLog) {
@@ -104,7 +104,7 @@ void DivePlan::calculateDivePlan(bool printLog) {
     QElapsedTimer timer;
     timer.start();
     if (printLog) {
-        printf("\nDivePlan::calculate() - START\n");
+        logWrite("\nDivePlan::calculate() - START\n");
     }
 
     m_firstDecoDepth = 0;
@@ -140,8 +140,8 @@ void DivePlan::calculateDivePlan(bool printLog) {
 
     // Monitor performance
     if (printLog) {
-        printf("DivePlan::calculate() took %lld ms\n", timer.elapsed());
-        printf("DivePlan::calculate() - END\n\n");
+        logWrite("DivePlan::calculate() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::calculate() - END\n\n");
     }
 }
 
@@ -173,7 +173,7 @@ void DivePlan::calculateOtherVariables(double GF, bool printLog){
 
     // Monitor performance
     if (printLog) {
-        printf("DivePlan::updateVariables() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::updateVariables() took %lld ms\n", timer.elapsed());
     }
 }
 
@@ -238,7 +238,7 @@ void DivePlan::calculateTimeProfile(bool printLog){
 
     // Monitor performance
     if (printLog) {
-        printf("DivePlan::updateTimeProfile() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::updateTimeProfile() took %lld ms\n", timer.elapsed());
     }
 
 }
@@ -281,7 +281,7 @@ void DivePlan::calculateGasConsumption(bool printLog) {
 
     // Monitor performance
     if (printLog) {
-        printf("DivePlan::updateGasConsumption() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::updateGasConsumption() took %lld ms\n", timer.elapsed());
     }
 }
 
@@ -289,7 +289,7 @@ void DivePlan::calculateDiveSummary(bool printLog) {
     if (m_diveProfile.empty()) return;
 
     if (printLog) {
-        printf("\nDivePlan::calculateDiveSummary() - START\n");
+        logWrite("\nDivePlan::calculateDiveSummary() - START\n");
     }
 
     // Log performance
@@ -320,8 +320,8 @@ void DivePlan::calculateDiveSummary(bool printLog) {
     
     // Monitor performance
     if (printLog) {
-        printf("DivePlan::calculateDiveSummary() took %lld ms\n", timer.elapsed());
-        printf("DivePlan::calculateDiveSummary() - END\n\n");
+        logWrite("DivePlan::calculateDiveSummary() took %lld ms\n", timer.elapsed());
+        logWrite("DivePlan::calculateDiveSummary() - END\n\n");
     }
 }
 
@@ -374,7 +374,7 @@ std::pair<double, double> DivePlan::getMaxTimeAndTTS() {
     maxTTS = tempDivePlan.getTTS();
 
     // Monitor performance
-    printf("DivePlan::getMaxTimeAndTTS() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlan::getMaxTimeAndTTS() took %lld ms\n", timer.elapsed());
 
     return std::make_pair(maxTime, maxTTS);
 }
@@ -440,7 +440,7 @@ double DivePlan::getTTSDelta(double incrementTime){
     tempDivePlan.calculateDivePlan(false);
 
     // Monitor performance
-    printf("DivePlan::getTTSDelta() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlan::getTTSDelta() took %lld ms\n", timer.elapsed());
 
     return tempDivePlan.getTTS() - getTTS();
 }

@@ -248,7 +248,7 @@ void DivePlanWindow::setupUI() {
     QApplication::processEvents();
 
     // Monitor performance
-    printf("DivePlanWindow::setupUI() took %lld ms\n", timer.elapsed());
+    logWrite("DivePlanWindow::setupUI() took %lld ms\n", timer.elapsed());
 }
 
 void DivePlanWindow::rebuildDivePlan() {

@@ -2,6 +2,7 @@
 #define GASLIST_HPP
 
 #include "qtheaders.hpp"
+#include "log_info.hpp"
 #include "error_handler.hpp"
 #include "gas.hpp"
 #include <vector>

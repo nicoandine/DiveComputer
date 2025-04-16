@@ -165,7 +165,7 @@ void DivePlanWindow::gfBoostedActionTriggered() {
 
 void DivePlanWindow::setMaxTime() {
     std::pair<double, double> result = m_divePlan->getMaxTimeAndTTS();
-    std::cout << "Max Time: " << result.first << " Max TTS: " << result.second << std::endl;
+    logWrite("Max Time: ", result.first, " Max TTS: ", result.second);
 
     // find the first stop step
     int firstStopIndex = 0;

@@ -1,6 +1,7 @@
 #ifndef OXYGEN_TOXICITY_HPP
 #define OXYGEN_TOXICITY_HPP
 
+#include "log_info.hpp"
 #include <array>
 
 namespace DiveComputer {

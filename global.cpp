@@ -35,13 +35,13 @@ std::string getFilePath(const std::string& filename) {
     QString dataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     
     // Print the location for debugging
-    std::cout << "Using AppDataLocation: " << dataLocation.toStdString() << std::endl;
+    logWrite("Using AppDataLocation: ", dataLocation.toStdString());
     
     // Create directory if it doesn't exist
     QDir dir(dataLocation);
     if (!dir.exists()) {
         bool created = dir.mkpath(".");
-        std::cout << "Created directory: " << (created ? "success" : "failed") << std::endl;
+        logWrite("Created directory: ", (created ? "success" : "failed"));
     }
     
     // Get full path with filename
@@ -151,7 +151,7 @@ double getDouble(const std::string& prompt) {
     bool validInput = false;
     
     while (!validInput) {
-        std::cout << prompt;
+        logWrite(prompt);
         
         if (std::cin >> result) {
             // Input is valid
@@ -161,7 +161,7 @@ double getDouble(const std::string& prompt) {
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         } else {
             // Input is not valid
-            std::cout << "Invalid input. Please enter a valid decimal number." << std::endl;
+            logWrite("Invalid input. Please enter a valid decimal number.");
             
             // Clear the error state
             std::cin.clear();

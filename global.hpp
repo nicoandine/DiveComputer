@@ -2,13 +2,19 @@
 #define GLOBAL_HPP
 
 #include "qtheaders.hpp"
+#include "log_info.hpp"
 #include "constants.hpp"
 #include "parameters.hpp"
+#include "enum.hpp"
 #include <fstream>
 #include <filesystem>
 #include <string>
 #include <iostream>
-#include "enum.hpp"
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <cstdarg>  // For variable arguments
+#include <vector>   // For the buffer
 
 namespace DiveComputer {
     const std::string PARAMETERS_FILE_NAME = "parameters.dat";
@@ -21,14 +27,17 @@ namespace DiveComputer {
     extern const QString PLAIN_STYLE;
     extern const QString EDITABLE_STYLE;
     
-    // Helper function to set style for editable cells
+    // Styling function
     void applyEditableCellStyle(QTableWidgetItem* item);
 
-
+    // File functions
     void   ensureAppInfoSet();
     std::string getFilePath(const std::string& filename);
+
+    // UI Window functions
     void setWindowSizeAndPosition(QWidget* window, int preferredWidth, int preferredHeight, WindowPosition position);
 
+    // Diving-dedicated standard functions
     double getDepthFromPressure(double pressure);
     double getPressureFromDepth(double depth);
     double getOptimalHeContent(double depth, double o2Content);

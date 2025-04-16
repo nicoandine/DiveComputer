@@ -2,6 +2,7 @@
 #define DIVE_PLAN_GUI_HPP
 
 #include <QElapsedTimer>
+#include "log_info.hpp"
 #include "qtheaders.hpp"
 #include "dive_plan.hpp"
 #include "parameters.hpp"

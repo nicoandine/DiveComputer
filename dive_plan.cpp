@@ -587,6 +587,54 @@ double DivePlan::getAP() {
     return ap;
 }
 
+double DivePlan::getNoFlyTime(){
+    // Log performance
+    QElapsedTimer timer;
+    timer.start();
+
+    DiveStep flyDive[3];
+
+    // Initialise the step with the last step of the dive profile
+    flyDive[0] = m_diveProfile[nbOfSteps() - 1];
+
+    // Step to wait at the surface
+    flyDive[1].m_pAmbStartDepth = g_parameters.m_atmPressure;
+    flyDive[1].m_pAmbEndDepth = g_parameters.m_atmPressure;
+    flyDive[1].m_pAmbMax = g_parameters.m_atmPressure;
+    flyDive[1].m_time = 0;
+    flyDive[1].m_n2Percent = 100 - g_constants.m_oxygenInAir;
+    flyDive[1].m_hePercent = 0;
+    flyDive[1].m_gf = g_parameters.m_noFlyGf;
+
+    // Step in the plane
+    flyDive[2].m_pAmbStartDepth = g_parameters.m_noFlyPressure;
+    flyDive[2].m_pAmbEndDepth = g_parameters.m_noFlyPressure;
+    flyDive[2].m_pAmbMax = g_parameters.m_noFlyPressure;
+    flyDive[2].m_time = 0;
+    flyDive[2].m_n2Percent = 100 - g_constants.m_oxygenInAir;
+    flyDive[2].m_hePercent = 0;
+    flyDive[2].m_gf = g_parameters.m_noFlyGf;
+
+    for (int i = 0; i < 3; i++){
+        double lastRatioN2He = 1.0; // ration n2/inert = 1
+        flyDive[i].calculatePPInertGasMaxForStep(lastRatioN2He);
+    }
+
+    flyDive[1].calculatePPInertGasForStep(flyDive[0], flyDive[1].m_time);
+    flyDive[2].calculatePPInertGasForStep(flyDive[1], flyDive[2].m_time);
+
+    while (flyDive[2].getIfBreachingDecoLimits()){
+        flyDive[1].m_time += g_parameters.m_noFlyTimeIncrement;
+        flyDive[1].calculatePPInertGasForStep(flyDive[0], flyDive[1].m_time);
+        flyDive[2].calculatePPInertGasForStep(flyDive[1], flyDive[2].m_time);
+    }
+ 
+    logWrite("DivePlan::getNoFlyTime() took ", timer.elapsed(), " ms");
+ 
+    // Convert time to hours and round up to no decimal places
+    return std::ceil(flyDive[1].m_time / 60.0);
+}
+
 // HELPER METHODS
 
 void DivePlan::clear(){

@@ -36,6 +36,13 @@ void DivePlanWindow::setupSummaryWidget() {
     diveNumberLabel->setStyleSheet(PLAIN_STYLE);
     formLayout->addRow(diveNumberTitle, diveNumberLabel);
     
+    // Add nofly time with explicit style
+    QLabel* noflyTimeTitle = new QLabel("NoFly Time:", summaryTable);
+    noflyTimeTitle->setStyleSheet(PLAIN_STYLE);
+    noflyTimeLabel = new QLabel(QString::number(m_divePlan->getNoFlyTime(), 'f', 0) + " hours", summaryTable);
+    noflyTimeLabel->setStyleSheet(PLAIN_STYLE);
+    formLayout->addRow(noflyTimeTitle, noflyTimeLabel);
+
     // Add GF values (editable)
     QWidget* gfWidget = new QWidget(summaryTable);
     gfWidget->setStyleSheet(PLAIN_STYLE);
@@ -252,6 +259,9 @@ void DivePlanWindow::refreshDiveSummaryTable() {
     QElapsedTimer timer;
     timer.start();
     
+    // Update nofly time
+    noflyTimeLabel->setText(QString::number(m_divePlan->getNoFlyTime(), 'f', 0) + " hours");
+
     // Update TTS Target - always visible
     ttsTargetLabel->setText(QString::number(m_divePlan->m_tts, 'f', 0) + " min");
     ttsDeltaLabel->setText(QString::number(m_divePlan->m_ttsDelta, 'f', 0) + " min");

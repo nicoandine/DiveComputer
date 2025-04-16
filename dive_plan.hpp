@@ -45,8 +45,8 @@ public:
     diveMode  m_mode;
 
     // Dive parameters
-    bool m_bailout;
-    int  m_diveNumber;
+    bool m_bailout = false;
+    int  m_diveNumber = 0;
     bool m_boosted = true;
     SetPoints m_setPoints;
     double m_mission = 0.0;
@@ -60,10 +60,10 @@ public:
     double m_turnTts = 0;
 
     // Dive variables
-    std::vector<CompartmentPP> m_initialPressure;
     std::vector<DiveStep> m_diveProfile;
     std::vector<DiveStep> m_timeProfile;
     std::vector<GasAvailable> m_gasAvailable;
+    std::vector<CompartmentPP> m_initialPressure;
 
     // Core methods
     void loadAvailableGases();
@@ -81,9 +81,10 @@ public:
     void   optimiseDecoGas();
     double getTTS();
     double getTTSDelta(double incrementTime);
-    double getAP(); // To be implemented
-    double getTP(); // To be implemented
-    double getTurnTTS(); // To be implemented
+    double getAP();
+    double getTP();
+    double getTurnTTS();
+    double getNoFlyTime();
 
     // Print-to-terminal functions
     void printPlan(std::vector<DiveStep> profile);
@@ -100,6 +101,10 @@ private:
     void   clearDecoSteps();
     void   sortGases();
     void   applyGases();
+    void   calculatePPInertGas();
+    void   calculatePPInertGasMax();
+    void   applyGF();
+    void   setFirstDecoDepth();
     void   calculateDecoSteps();
     bool   getIfBreachingDecoLimitsInRange(int deco, int next_deco);
     void   calculatePPInertGasInRange(int deco, int next_deco);
@@ -110,12 +115,6 @@ private:
     DiveStep& addStep(double start_depth, double end_depth, double time, Phase phase, stepMode mode);
     DiveStep& insertStep(int index, double start_depth, double end_depth, double time, Phase phase, stepMode mode);
     void deleteStep(int index);
-
-    // Decompression methods
-    void calculatePPInertGas();
-    void calculatePPInertGasMax();
-    void applyGF();
-    void setFirstDecoDepth();
 
     // update variable functions
     void updateStepsPhaseFromFirstDeco();

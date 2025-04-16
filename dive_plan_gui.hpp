@@ -175,6 +175,7 @@ private:
     QLineEdit *gfLowEdit;
     QLineEdit *gfHighEdit;
     QLineEdit *missionEdit;
+    QLabel *noflyTimeLabel;
     QLabel *ttsTargetLabel;
     QLabel *maxTtsLabel;
     QLabel *maxTimeLabel;
